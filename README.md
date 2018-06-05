@@ -1,6 +1,6 @@
 # LoL Data
 
-Small script I made to pull data from Riot Games API and store it into an amazon RDS to parse through at a later date
+Small script I made to pull data from Riot Games API and store it into an RDS to parse through at a later date
 
 ## Acknowledgments
 
