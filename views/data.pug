@@ -1,0 +1,20 @@
+doctype html5  
+html
+    head
+        link(rel="stylesheet" href="https://bootswatch.com/4/darkly/bootstrap.min.css")
+    body
+        label(id="lblSpaynkee") Spaynkee
+        input(id="chkSpaynkee" type="checkbox")
+        label(class="playerRoleLabel") role
+        .divclass
+        label(id="lblDumat") Dumat
+        input(id="chkDumat" type="checkbox")
+        label(class="playerRoleLabel") role
+        .divclass
+        label(id="lblTop" class="roleLabel badge badge-primary" draggable="true") Top
+        label(id="lblJungle" class="roleLabel badge badge-success" draggable="true") Jungle
+        label(id="lblMiddle" class="roleLabel badge badge-warning" draggable="true") Middle
+        label(id="lblSupport" class="roleLabel badge badge-info" draggable="true") Support
+        label(id="lblADC" class="roleLabel badge badge-danger" draggable="true") ADC
+
+    script(src="./js/data.js")

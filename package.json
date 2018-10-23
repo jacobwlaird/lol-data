@@ -1,0 +1,25 @@
+{
+  "name": "lol-data",
+  "version": "1.0.0",
+  "description": "frontend for my lol data",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.16.4",
+    "pug": "^2.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Spaynkee/Lol-Data.git"
+  },
+  "author": "Paul Brackett",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Spaynkee/Lol-Data/issues"
+  },
+  "homepage": "https://github.com/Spaynkee/Lol-Data#readme"
+}
