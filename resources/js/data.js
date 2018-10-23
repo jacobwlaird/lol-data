@@ -1,10 +1,12 @@
 "use strict";
+
 let roles = ['Top', 'Jungle', 'Middle', 'Support', 'ADC'];
 let playerRoleLabels = document.querySelectorAll("td > label.playerRoleLabel");
 let roleLabels = document.querySelectorAll(".roleLabel");
 let getRole = document.querySelector("#getRoles");
 let getChamps = document.querySelector("#getChamps");
-let dragged;
+console.dir(getRole);
+console.dir(getChamps);
 //add the options to the select control, for all players
 let roleSelectors = document.querySelectorAll(".roleSelect")
 
@@ -22,20 +24,7 @@ getChamps.addEventListener('click',  function(evt){
 })
 
 getRoles.addEventListener('click', function(evt){
-    alert("Hey youre getting roles");
 })
-
-roleLabels.forEach(function (lbl) {
-    lbl.addEventListener("dragstart", function(evt){
-        role = evt.srcElement.innerHTML;
-        dragged = evt.target;
-    })
-})
-
-document.addEventListener("dragover", function( event ) {
-    // prevent default to allow drop
-    event.preventDefault();
-}, false);
 
 playerRoleLabels.forEach(function (lb) {
     lb.addEventListener("drop", function(ev) {

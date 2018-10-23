@@ -6,6 +6,8 @@
 //or if roles are not selected, recommend a role and a champ.
 //NICE
 
+let {PythonShell} = require('python-shell');
+
 const express = require("express");
 const app = express();
 
@@ -18,7 +20,14 @@ app.get('/', function(req, res) {
 	});
 });
 
-app.use(express.static('resources'));
+app.get('/getRole', function(req, res){
+	console.log(req.query.passed);
+	PythonShell.run('./resources/python/test.py', null, function (err, results) {
+			if (err) throw err;
+			console.log(results[0]);
+		});
+	res.render('data', {});
+})
 
 const server = app.listen(6112, function() {
 	console.log(`Server started on port ${server.address().port}`);

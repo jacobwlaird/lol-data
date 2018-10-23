@@ -25,6 +25,8 @@ html
                         select(id="roleDumat" class="roleSelect") 
         .row
         .col-lg-12
-            input(id="getRoles" class="btn btn-primary" type="button" value="Get Roles")
+            form(action="/getRole?passed=value" method="get")
+                input(id="getRoles" class="btn btn-primary" type="submit" value="Get Roles")
             input(id="getChamps" class="btn btn-danger" type="button" value="Get Champs")
-    script(src="./js/data.js")
+
+        script(src="./js/data.js")

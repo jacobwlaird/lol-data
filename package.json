@@ -5,7 +5,8 @@
   "main": "server.js",
   "dependencies": {
     "express": "^4.16.4",
-    "pug": "^2.0.3"
+    "pug": "^2.0.3",
+    "python-shell": "^1.0.6"
   },
   "devDependencies": {},
   "scripts": {
