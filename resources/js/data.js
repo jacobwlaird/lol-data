@@ -1,9 +1,29 @@
 "use strict";
-
-let playerRoleLabels = document.querySelectorAll(".playerRoleLabel");
+let roles = ['Top', 'Jungle', 'Middle', 'Support', 'ADC'];
+let playerRoleLabels = document.querySelectorAll("td > label.playerRoleLabel");
 let roleLabels = document.querySelectorAll(".roleLabel");
-let role = "";
+let getRole = document.querySelector("#getRoles");
+let getChamps = document.querySelector("#getChamps");
 let dragged;
+//add the options to the select control, for all players
+let roleSelectors = document.querySelectorAll(".roleSelect")
+
+roleSelectors.forEach(function (select) {
+    roles.forEach(function(role) {
+        let roleOption = document.createElement("option");
+        let roleText = document.createTextNode(role);
+        roleOption.appendChild(roleText);
+        select.appendChild(roleOption);
+    });
+});
+
+getChamps.addEventListener('click',  function(evt){
+    alert("Hey youre getting champs");
+})
+
+getRoles.addEventListener('click', function(evt){
+    alert("Hey youre getting roles");
+})
 
 roleLabels.forEach(function (lbl) {
     lbl.addEventListener("dragstart", function(evt){
@@ -24,3 +44,5 @@ playerRoleLabels.forEach(function (lb) {
         //append child
     });
 });
+
+//add event listener for the button to call to a python script
