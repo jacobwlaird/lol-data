@@ -21,7 +21,6 @@ app.get('/', function(req, res) {
 });
 
 app.get('/getRole', function(req, res){
-	console.log(req.query.passed);
 	PythonShell.run('./resources/python/test.py', null, function (err, results) {
 			if (err) throw err;
 			console.log(results[0]);
