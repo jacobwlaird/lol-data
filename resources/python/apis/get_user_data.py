@@ -7,7 +7,7 @@ import sys
 def get_data(name):
 
     config = configparser.ConfigParser()
-    config.read('.resources/python/general.cfg')
+    config.read('./resources/python/general.cfg')
 
     db_host = config.get('DATABASE', 'db_id')
     db_user = config.get('DATABASE', 'db_user')
