@@ -1,2 +1,5 @@
 general.cfg
 data-base-setup.py
+resources/scripts
+classes/__pycache
+.DS_Store
