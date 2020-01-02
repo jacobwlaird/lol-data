@@ -14,7 +14,7 @@ def main():
     parser = LolParser()
 
     # Set a couple things
-    LolParser.max_game_index = 300
+    LolParser.max_game_index = 100
     LolParser.accounts = ['spaynkee', 'dumat']
 
     # Create a list of account objects with the account name set.
@@ -36,7 +36,11 @@ def main():
 
         print("Added {} new matches to {}'s matches".format(len(acc.user_matches), acc.account_name))
 
+        acc.update_player_table_stats()
+
         # updating the user_match_history table after getting the list of matches
+
+        # update player opponent needs a big change.
         
         # updating the matches table
 

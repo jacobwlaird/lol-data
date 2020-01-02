@@ -6,6 +6,7 @@ import json
 import time
 import pandas as pd
 import sqlalchemy as db
+from sqlalchemy import orm
 
 class LolParser(object):
     base_summoner_url = "https://na1.api.riotgames.com/lol/summoner/v4/"
@@ -24,9 +25,10 @@ class LolParser(object):
     db_name = config.get('DATABASE', 'db_name')
 
     # db stuff.
-    engine = db.create_engine('mysql+pymysql://{}:{}@{}/{}'.format(db_user, db_pw, db_host, db_name))
+    engine = db.create_engine('mysql+pymysql://{}:{}@{}/{}'.format(db_user, db_pw, db_host, db_name), pool_size=100, max_overflow = 100)
     connection = engine.connect()
     metadata = db.MetaData()
+    sm = orm.sessionmaker(bind=engine, autoflush=True, autocommit=False, expire_on_commit=True)
 
     accounts = []
     match_types = [400, 420, 440, 700]
@@ -34,12 +36,15 @@ class LolParser(object):
     api_key = config.get('RIOT', 'api_key')
     new_match_data = {}
 
+    # add matches and champions table to the class
+
     def __init__(self):
         self.new_matches = []
 
     @classmethod
     def get_account_info(cls, name, start_index, end_index):
         try:
+            player_matches = {}
             account_response = requests.get(''.join([cls.base_summoner_url, cls.account_name_url, name, "?api_key=", cls.api_key]))
             account_response.raise_for_status()
             account_data = json.loads(account_response.text)
