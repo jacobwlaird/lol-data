@@ -4,10 +4,14 @@ import sqlalchemy as db
 import configparser
 import sys
 
-def get_data(name):
+def get_data(name, prod=True):
 
     config = configparser.ConfigParser()
-    config.read('./resources/python/general.cfg')
+
+    if prod == True:
+        config.read('./resources/python/general.cfg')
+    else:
+        config.read('../general.cfg')
 
     db_host = config.get('DATABASE', 'db_id')
     db_user = config.get('DATABASE', 'db_user')
@@ -28,11 +32,14 @@ def get_data(name):
     for result in results:
             json_data.append(dict(zip(row_headers,result)))
 
-    return json.dumps(json_data)
+    if prod == True:
+        return json.dumps(json_data)
+    else:
+        print(json_data) # maybe we want to ?
 
 def main():
 
-	return get_data(sys.argv[1])
+	return get_data(sys.argv[1], sys.argv[2])
 
 if __name__ == "__main__":
 	main()
