@@ -38,8 +38,6 @@ def main():
 
         acc.update_player_table_stats()
 
-        # updating the user_match_history table after getting the list of matches
-
         # update player opponent needs a big change.
         
         # updating the matches table
