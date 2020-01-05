@@ -29,6 +29,7 @@ class LolParser(object):
     connection = engine.connect()
     metadata = db.MetaData()
     sm = orm.sessionmaker(bind=engine, autoflush=True, autocommit=False, expire_on_commit=True)
+    champs_table = db.Table('champions', metadata, autoload=True, autoload_with=engine)
 
     accounts = []
     match_types = [400, 420, 440, 700]

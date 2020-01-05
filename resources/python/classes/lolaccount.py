@@ -28,7 +28,7 @@ class LolAccount(object):
             self.game_index += 10
 
     # sets the previous_matches and new_player_matches properties.
-    def add_user_match_history(self, start_index=0, end_index=100):
+    def add_user_match_history(self, start_index=0, end_index=10):
         player_matches = LolParser.get_account_info(self.account_name, start_index, end_index)
         select_previous_matches = "SELECT match_id FROM {}_match_history;".format(self.account_name)
         player_match_history = pd.read_sql(select_previous_matches, LolParser.connection)
@@ -52,15 +52,19 @@ class LolAccount(object):
 
         for match in self.user_matches:
             session = orm.scoped_session(LolParser.sm)
-
             row = session.query(self.user_table).filter_by(match_id=match).first()
-            champion = str(row.champion)
+            session.close()
+
+            champion = row.champion
 
             match_data = LolParser.new_match_data[int(match)]
 
             for participant in match_data['participants']:
-                participant_champ = str(participant['championId'])
+                participant_champ = participant['championId']
                 
+                # pull the champ name from the db so we can store it here.
+
+
                 # if this participant is us, get some stats
                 if participant_champ == champion:
                     kills = participant['stats']['kills']
@@ -71,7 +75,9 @@ class LolAccount(object):
                     damage_to_turrets = participant['stats']['damageDealtToTurrets']
                     vision_wards_bought = participant['stats']['visionWardsBoughtInGame']
                     wards_killed = participant['stats']['wardsKilled']
+                    champ_name = self.get_champ_name_from_db(champion)
                     
+
                     if 'firstBloodKill' in participant['stats']:
                         first_blood_kill = participant['stats']['firstBloodKill']
                     else:
@@ -82,8 +88,6 @@ class LolAccount(object):
                     else:
                         first_blood_assist = 0
 
-                    # some calculated stats
-
                     timeline = participant['timeline']
 
                     role = self.get_role(timeline)
@@ -91,10 +95,13 @@ class LolAccount(object):
 
                     if role != "NONE":
                         enemy_champ = self.get_enemy_champ(role, champion, match_data['participants'])
-                        enemy_champ_name = 'COMING SOON'
+                        if enemy_champ != None:
+                            enemy_champ_name = self.get_champ_name_from_db(enemy_champ)
+                        else:
+                            enemy_champ_name = None
                     else:
                         enemy_champ = None # what can we do about this?
-                        enemy_champ_name = 'NONE'
+                        enemy_champ_name = None
                     
                     # can we make an object that has all the properties of the table
                     # set all the properties, then insert it with 1 passed argument (the object) 
@@ -112,8 +119,11 @@ class LolAccount(object):
                             vision_wards_bought=vision_wards_bought,
                             gold_per_minute=gold_per_minute,
                             creeps_per_minute=creeps_per_minute,
+                            champion_name=champ_name,
                             enemy_champion=enemy_champ,
                             enemy_champion_name=enemy_champ_name,
+                            first_blood=first_blood_kill,
+                            first_blood_assist=first_blood_assist,
                             wards_killed=wards_killed).where(self.user_table.c.match_id == match)
 
                     results = LolParser.connection.execute(match_stats_insert)
@@ -162,16 +172,12 @@ class LolAccount(object):
         if role == 'MID':
             return 'MIDDLE'
 
-
-    # we also need our champion, and the data itself
     def get_enemy_champ(self, role, champion, participants):
-        # I think we'll first, determine which team we're on. Then run get_role for every enemy
-        # if we have 5 different roles on the opponent team, and no NONE, then we can pick our enemy champ.
         enemy_participants_roles = []
         enemy_champions = []
 
         for participant in participants:
-            participant_champ = str(participant['championId'])
+            participant_champ = participant['championId']
 
             # If the participant is us, then grab our team.
             if participant_champ == champion:
@@ -185,7 +191,6 @@ class LolAccount(object):
                 enemy_participants_roles.append(self.get_role(timeline))
                 enemy_champions.append(participant['championId'])
 
-        print(enemy_participants_roles)
         # if enemy_participants_roles has 5 unique values, we're good.
         if 'NONE' in enemy_participants_roles:
             return None
@@ -194,20 +199,17 @@ class LolAccount(object):
                 and 'BOTTOM' in enemy_participants_roles and 'SUPPORT' in enemy_participants_roles:
 
             #get the index of the role we passed in, and pass that champion back.
-            print(enemy_champions)
-            print(enemy_participants_roles)
             return enemy_champions[enemy_participants_roles.index(role)]
         else:
             return None
 
+    def get_champ_name_from_db(self, champ_id):
+        #you know, it probably might make sense to store names in memory instead of transacting so much.
+        session = orm.scoped_session(LolParser.sm)
+        champion_row = session.query(LolParser.champs_table).filter_by(key=champ_id).first()
+        session.close()
+        return champion_row.name
+
         
-                
-
-
-
-
-
-
-
 
 

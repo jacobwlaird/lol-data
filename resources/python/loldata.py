@@ -14,7 +14,7 @@ def main():
     parser = LolParser()
 
     # Set a couple things
-    LolParser.max_game_index = 100
+    LolParser.max_game_index = 15
     LolParser.accounts = ['spaynkee', 'dumat']
 
     # Create a list of account objects with the account name set.
