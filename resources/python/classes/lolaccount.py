@@ -27,7 +27,7 @@ class LolAccount(object):
 
             self.game_index += 10
 
-    # sets the previous_matches and new_player_matches properties.
+    # sets the previous_matches and new_player_matches properties. Maybe change this from pd to not pd and use db instead?
     def add_user_match_history(self, start_index=0, end_index=10):
         player_matches = LolParser.get_account_info(self.account_name, start_index, end_index)
         select_previous_matches = "SELECT match_id FROM {}_match_history;".format(self.account_name)
@@ -66,6 +66,10 @@ class LolAccount(object):
 
 
                 # if this participant is us, get some stats
+                # add keystone and other rune info here
+                # perk0- perk5
+                # perkPrimaryStyle
+                # item0-item6  make into a list an put into an items column item 6 is trinket?`
                 if participant_champ == champion:
                     kills = participant['stats']['kills']
                     deaths = participant['stats']['deaths']
@@ -91,7 +95,7 @@ class LolAccount(object):
                     timeline = participant['timeline']
 
                     role = self.get_role(timeline)
-                    gold_per_minute, creeps_per_minute = self.get_gold_cs_delta(timeline)
+                    gold_per_minute, creeps_per_minute, xp_per_minute = self.get_gold_cs_xp_delta(timeline)
 
                     if role != "NONE":
                         enemy_champ = self.get_enemy_champ(role, champion, match_data['participants'])
@@ -103,6 +107,7 @@ class LolAccount(object):
                         enemy_champ = None # what can we do about this?
                         enemy_champ_name = None
                     
+                    # get a list of items
                     # can we make an object that has all the properties of the table
                     # set all the properties, then insert it with 1 passed argument (the object) 
                     # instead of doing this? yes, when we move to orm.
@@ -119,6 +124,7 @@ class LolAccount(object):
                             vision_wards_bought=vision_wards_bought,
                             gold_per_minute=gold_per_minute,
                             creeps_per_minute=creeps_per_minute,
+                            xp_per_minute=xp_per_minute,
                             champion_name=champ_name,
                             enemy_champion=enemy_champ,
                             enemy_champion_name=enemy_champ_name,
@@ -129,12 +135,99 @@ class LolAccount(object):
                     results = LolParser.connection.execute(match_stats_insert)
                     break # gets us outta the loop as soon as we put our data in.
                     
-    def get_gold_cs_delta(self, timeline):
+    def update_matches_table(self):
+       print("Adding {}'s new matches to the matches table.".format(self.account_name))
+       previous_matches = [] # this needs to change to be better, but for some reason my match not in exisiting matches condition isn't working.
+
+       select_existing_matches = "SELECT match_id FROM matches;"
+       existing_match_history = pd.read_sql(select_existing_matches, LolParser.connection)
+       for match in existing_match_history['match_id']:   
+            previous_matches.append(match)
+
+       for match in self.user_matches:
+            if match not in previous_matches:
+                # get this match from the big list of match data
+                match_data = LolParser.new_match_data[int(match)]
+                 
+                # determine what team we're on stick all this in 'get_team_data' which accepts uh, a match
+                session = orm.scoped_session(LolParser.sm)
+                row = session.query(self.user_table).filter_by(match_id=match).first()
+                session.close()
+
+                champion = row.champion
+                for participant in match_data['participants']:
+                    participant_champ = participant['championId']
+                    if participant_champ == champion:
+                        team_id = participant['teamId']
+                        if team_id == 100:
+                            team_data = match_data['teams'][0]
+                            break
+                        elif team_id == 200:
+                            team_data = match_data['teams'][1]
+                            break
+
+                # get some team information.
+                game_outcome = team_data['win']
+                first_blood = team_data['firstBlood']
+                first_baron = team_data['firstBaron']
+                first_tower = team_data['firstTower']
+                first_rift_herald = team_data['firstRiftHerald']
+                rift_herald_kills = team_data['riftHeraldKills']
+                first_dragon = team_data['firstDragon']
+                dragon_kills = team_data['dragonKills']
+                first_inhib = team_data['firstInhibitor']
+                inhib_kills = team_data['inhibitorKills']
+                list_of_bans = ""
+                game_version = match_data['gameVersion']
+                start_time, duration = self.get_start_time_and_duration() 
+
+                # get a list of banned champs, if there are any.
+                if team_data['bans']: # this might need to be changed to a queue thing?
+                    for ban in team_data['bans']:
+                        list_of_bans += "{}, ".format(self.get_champ_name_from_db(ban['championId'])) # need to remove last , 
+
+            # we need to add a row to the matches table use team data here to get 
+                matches_table_insert = db.insert(LolParser.matches_table).values(match_id=match, 
+                        participants=self.account_name,
+                        win=game_outcome,
+                        first_blood=first_blood,
+                        first_baron=first_baron,
+                        first_tower=first_tower,
+                        first_rift_herald=first_rift_herald,
+                        rift_herald_kills=rift_herald_kills,
+                        first_dragon=first_dragon,
+                        dragon_kills=dragon_kills,
+                        first_inhib=first_inhib,
+                        inhib_kills=inhib_kills,
+                        bans=list_of_bans,
+                        game_version=game_version,
+                        start_time=start_time,
+                        duration=duration
+                        )
+
+                results = LolParser.connection.execute(matches_table_insert)
+            else:
+                # we need to update the current one with our new participant because several people we care about were in this match
+                #get current participants
+                session = orm.scoped_session(LolParser.sm)
+                row = session.query(LolParser.matches_table).filter_by(match_id=match).first()
+                session.close()
+
+                current_participants = row.participants
+                match_participants_update = LolParser.matches_table.update().values( 
+                        participants="{}, {}".format(current_participants, self.account_name)).where(LolParser.matches_table.c.match_id == match)
+
+                results = LolParser.connection.execute(match_participants_update)
+
+    #add xp-per-min
+    def get_gold_cs_xp_delta(self, timeline):
         num_of_deltas = 0
         total_gold = 0
         total_creeps = 0
+        total_xp = 0
         cspm = 0
         gpm = 0
+        xppm = 0
         
         try:
             for deltas, value in timeline['goldPerMinDeltas'].items():
@@ -147,10 +240,16 @@ class LolAccount(object):
                 total_creeps += value
 
             cspm = float(total_creeps / num_of_deltas)
+
+            for deltas, value in timeline['xpPerMinDeltas'].items():
+                total_xp += value
+                num_of_deltas += 1
+
+            xppm = float(total_xp / num_of_deltas)
         except Exception as e:
             print("NO gold per minute or creeps per minute deltas, GTFO")
 
-        return gpm, cspm
+        return gpm, cspm, xppm
 
     def get_role(self, timeline): 
         lane = timeline['lane']
@@ -210,6 +309,9 @@ class LolAccount(object):
         session.close()
         return champion_row.name
 
+    def get_start_time_and_duration(self):
+        #return "12:00", "45:00"
+        return None, None
         
 
 

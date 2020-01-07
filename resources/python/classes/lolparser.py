@@ -30,9 +30,10 @@ class LolParser(object):
     metadata = db.MetaData()
     sm = orm.sessionmaker(bind=engine, autoflush=True, autocommit=False, expire_on_commit=True)
     champs_table = db.Table('champions', metadata, autoload=True, autoload_with=engine)
+    matches_table = db.Table('matches', metadata, autoload=True, autoload_with=engine)
 
     accounts = []
-    match_types = [400, 420, 440, 700]
+    match_types = [400, 420, 440, 700] # make sure this includes the new types
 
     api_key = config.get('RIOT', 'api_key')
     new_match_data = {}

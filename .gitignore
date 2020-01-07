@@ -1,5 +1,5 @@
 general.cfg
 tests/*
 resources/scripts
-resources/classes/__pycache__/*
+resources/python/classes/__pycache__
 .DS_Store
