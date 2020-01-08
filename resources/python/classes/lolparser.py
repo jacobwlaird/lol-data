@@ -57,6 +57,9 @@ class LolParser(object):
             player_matches = json.loads(player_matches_response.text)
         except Exception as e:
             print(e)
+            if e.response.status_code == 403:
+                print("Api key is probably expired")
+
             print("Get_account_info broke")
 
         return player_matches

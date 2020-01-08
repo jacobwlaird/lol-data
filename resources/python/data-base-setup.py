@@ -32,6 +32,7 @@ matches_table = Table('matches',
         Column('rift_herald_kills', Integer), 
         Column('inhib_kills', Integer),
         Column('bans', String(80)),
+        Column('enemy_bans', String(80)),
         Column('allies', String(80)),
         Column('enemies', String(80)),
         Column('start_time', TIMESTAMP), 
@@ -65,8 +66,8 @@ for user in users:
             Column('wards_placed', Integer),
             Column('vision_wards_bought', Integer),
             Column('wards_killed', Integer),
-            Column('items', String(100)),
-            Column('keystone', String(25)),
+            Column('items', String(200)),
+            Column('perks', String(100))
             )
     
     users_table.create(LolParser.engine)

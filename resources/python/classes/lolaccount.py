@@ -25,6 +25,7 @@ class LolAccount(object):
             if not self.user_matches:
                 break
 
+
             self.game_index += 10
 
     # sets the previous_matches and new_player_matches properties. Maybe change this from pd to not pd and use db instead?
@@ -66,10 +67,6 @@ class LolAccount(object):
 
 
                 # if this participant is us, get some stats
-                # add keystone and other rune info here
-                # perk0- perk5
-                # perkPrimaryStyle
-                # item0-item6  make into a list an put into an items column item 6 is trinket?`
                 if participant_champ == champion:
                     kills = participant['stats']['kills']
                     deaths = participant['stats']['deaths']
@@ -104,13 +101,22 @@ class LolAccount(object):
                         else:
                             enemy_champ_name = None
                     else:
-                        enemy_champ = None # what can we do about this?
+                        enemy_champ = None 
                         enemy_champ_name = None
                     
                     # get a list of items
-                    # can we make an object that has all the properties of the table
-                    # set all the properties, then insert it with 1 passed argument (the object) 
-                    # instead of doing this? yes, when we move to orm.
+                    champ_items = ""
+                    
+                    items = ['item0', 'item1', 'item2', 'item3', 'item4', 'item5', 'item6']
+                    for item in items:
+                        if item:
+                            champ_items = "{}, {}".format(champ_items, participant['stats'][item])
+
+                    champ_perks = ""
+                    perks = ['perk0', 'perk1', 'perk2', 'perk3', 'perk4', 'perk5']
+                    for perk in perks:
+                        if perk:
+                            champ_perks = "{}, {}".format(champ_perks, participant['stats'][perk])
 
                     # update this match in the table
                     match_stats_insert = self.user_table.update().values( 
@@ -130,6 +136,8 @@ class LolAccount(object):
                             enemy_champion_name=enemy_champ_name,
                             first_blood=first_blood_kill,
                             first_blood_assist=first_blood_assist,
+                            items=champ_items,
+                            perks=champ_perks,
                             wards_killed=wards_killed).where(self.user_table.c.match_id == match)
 
                     results = LolParser.connection.execute(match_stats_insert)
@@ -161,9 +169,13 @@ class LolAccount(object):
                         team_id = participant['teamId']
                         if team_id == 100:
                             team_data = match_data['teams'][0]
+                            enemy_team_data = match_data['teams'][1]
+                            enemy_team_id = 200
                             break
                         elif team_id == 200:
                             team_data = match_data['teams'][1]
+                            enemy_team_data = match_data['teams'][0]
+                            enemy_team_id = 100
                             break
 
                 # get some team information.
@@ -178,15 +190,16 @@ class LolAccount(object):
                 first_inhib = team_data['firstInhibitor']
                 inhib_kills = team_data['inhibitorKills']
                 list_of_bans = ""
+                list_of_enemy_bans = ""
                 game_version = match_data['gameVersion']
-                start_time, duration = self.get_start_time_and_duration() 
 
-                # get a list of banned champs, if there are any.
-                if team_data['bans']: # this might need to be changed to a queue thing?
-                    for ban in team_data['bans']:
-                        list_of_bans += "{}, ".format(self.get_champ_name_from_db(ban['championId'])) # need to remove last , 
+                #these could pass in only bans, not the whole object.
+                list_of_bans = self.get_team_bans(team_data)
+                list_of_enemy_bans = self.get_team_bans(enemy_team_data)
 
-            # we need to add a row to the matches table use team data here to get 
+                allies, enemies = self.get_allies_and_enemies(team_id, match)
+                start_time, duration = self.get_start_time_and_duration(match) 
+
                 matches_table_insert = db.insert(LolParser.matches_table).values(match_id=match, 
                         participants=self.account_name,
                         win=game_outcome,
@@ -200,7 +213,10 @@ class LolAccount(object):
                         first_inhib=first_inhib,
                         inhib_kills=inhib_kills,
                         bans=list_of_bans,
+                        enemy_bans=list_of_enemy_bans,
                         game_version=game_version,
+                        allies=allies,
+                        enemies=enemies,
                         start_time=start_time,
                         duration=duration
                         )
@@ -302,6 +318,23 @@ class LolAccount(object):
         else:
             return None
 
+    def get_start_time_and_duration(self, match):
+        match_data = LolParser.new_match_data[int(match)]
+        
+        start_t = match_data['gameCreation']
+        # Creation includes miliseconds which we don't care about.
+        start_t = start_t / 1000
+        start_t = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_t))
+        
+        # Duration might go over an hour, so I have to use a check for presentability's sake
+        duration = match_data['gameDuration']
+        if duration > 3600:
+            duration = time.strftime("%H:%M:%S", time.gmtime(duration))
+        else:
+            duration = time.strftime("%M:%S", time.gmtime(duration))
+        
+        return start_t, duration
+
     def get_champ_name_from_db(self, champ_id):
         #you know, it probably might make sense to store names in memory instead of transacting so much.
         session = orm.scoped_session(LolParser.sm)
@@ -309,9 +342,23 @@ class LolAccount(object):
         session.close()
         return champion_row.name
 
-    def get_start_time_and_duration(self):
-        #return "12:00", "45:00"
-        return None, None
-        
+    def get_allies_and_enemies(self, team_id, match):
+        match_data = LolParser.new_match_data[int(match)]
 
+        allies = ""
+        enemies = ""
+        for participant in match_data['participants']:
+            if participant['teamId'] == team_id:
+                allies = "{}, {}".format(allies, self.get_champ_name_from_db(participant['championId']))
+            else:
+                enemies = "{}, {}".format(enemies, self.get_champ_name_from_db(participant['championId']))
 
+        return allies, enemies
+
+    def get_team_bans(self, team_data):
+        list_of_bans = ""
+
+        for ban in team_data['bans']:
+            list_of_bans += "{}, ".format(self.get_champ_name_from_db(ban['championId'])) # need to remove first , 
+
+        return list_of_bans
