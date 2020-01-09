@@ -105,18 +105,8 @@ class LolAccount(object):
                         enemy_champ_name = None
                     
                     # get a list of items
-                    champ_items = ""
-                    
-                    items = ['item0', 'item1', 'item2', 'item3', 'item4', 'item5', 'item6']
-                    for item in items:
-                        if item:
-                            champ_items = "{}, {}".format(champ_items, participant['stats'][item])
-
-                    champ_perks = ""
-                    perks = ['perk0', 'perk1', 'perk2', 'perk3', 'perk4', 'perk5']
-                    for perk in perks:
-                        if perk:
-                            champ_perks = "{}, {}".format(champ_perks, participant['stats'][perk])
+                    champ_items = self.get_items(participant['stats'])
+                    champ_perks = self.get_perks(participant['stats'])
 
                     # update this match in the table
                     match_stats_insert = self.user_table.update().values( 
@@ -349,9 +339,12 @@ class LolAccount(object):
         enemies = ""
         for participant in match_data['participants']:
             if participant['teamId'] == team_id:
-                allies = "{}, {}".format(allies, self.get_champ_name_from_db(participant['championId']))
+                allies += "{}, ".format(self.get_champ_name_from_db(participant['championId']))
             else:
-                enemies = "{}, {}".format(enemies, self.get_champ_name_from_db(participant['championId']))
+                enemies += "{}, ".format(self.get_champ_name_from_db(participant['championId']))
+
+        allies = allies[:-2]
+        enemies = enemies[:-2]
 
         return allies, enemies
 
@@ -359,6 +352,44 @@ class LolAccount(object):
         list_of_bans = ""
 
         for ban in team_data['bans']:
-            list_of_bans += "{}, ".format(self.get_champ_name_from_db(ban['championId'])) # need to remove first , 
+            list_of_bans += "{}, ".format(self.get_champ_name_from_db(ban['championId']))
 
+        list_of_bans = list_of_bans[:-2] # removes the last two characters
         return list_of_bans
+
+    def get_items(self, participant_stats):
+        champ_items = ""
+        items = ['item0', 'item1', 'item2', 'item3', 'item4', 'item5', 'item6']
+        for item in items:
+            if item:
+                # here we need to ping our itmes table and get the actual name of the item
+                session = orm.scoped_session(LolParser.sm)
+                row = session.query(LolParser.items_table).filter_by(key=participant_stats[item]).first()
+                session.close()
+
+                if row:
+                    champ_items += "{}, ".format(row.name)
+                else:
+                    champ_items += "NOT FOUND, "
+
+        champ_items = champ_items[:-2]
+        return champ_items
+
+    # getting the perk name from the db is on hold until I can figure out how to populate the db.
+    def get_perks(self, participant_stats):
+        champ_perks = ""
+        perks = ['perk0', 'perk1', 'perk2', 'perk3', 'perk4', 'perk5']
+        for perk in perks:
+            if perk:
+                #session = orm.scoped_session(LolParser.sm)
+                #row = session.query(LolParser.items_table).filter_by(key=item).first()
+                #session.close()
+                champ_perks = "{}, ".format(participant_stats[perk])
+
+                #if row:
+                #    champ_perks = "{}, ".format(row.name)
+                #else:
+                #    champ_items += "NOT FOUND, "
+
+        champ_perks = champ_perks[:-2]
+        return champ_perks

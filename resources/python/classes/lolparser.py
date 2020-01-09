@@ -31,6 +31,7 @@ class LolParser(object):
     sm = orm.sessionmaker(bind=engine, autoflush=True, autocommit=False, expire_on_commit=True)
     champs_table = db.Table('champions', metadata, autoload=True, autoload_with=engine)
     matches_table = db.Table('matches', metadata, autoload=True, autoload_with=engine)
+    items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
 
     accounts = []
     match_types = [400, 420, 440, 700] # make sure this includes the new types

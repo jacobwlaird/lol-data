@@ -33,7 +33,7 @@ def get_data(name, prod=True):
             json_data.append(dict(zip(row_headers,result)))
 
     if prod == True:
-        return json.dumps(json_data)
+        return json.dumps(json_data, indent=4, sort_keys=True, default=str)
     else:
         print(json_data) # maybe we want to ?
 
