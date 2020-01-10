@@ -17,7 +17,7 @@ class LolParser(object):
 
     config = configparser.ConfigParser()
     config.read('./general.cfg')
-    max_game_index = 0
+    max_game_index = 5000
 
     db_host = config.get('DATABASE', 'db_id')
     db_user = config.get('DATABASE', 'db_user')
@@ -33,13 +33,11 @@ class LolParser(object):
     matches_table = db.Table('matches', metadata, autoload=True, autoload_with=engine)
     items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
 
-    accounts = []
-    match_types = [400, 420, 440, 700] # make sure this includes the new types
+    accounts = ['spaynkee', 'dumat', 'archemlis']
+    match_types = [400, 410, 420, 440, 700] # make sure this includes the new types 
 
     api_key = config.get('RIOT', 'api_key')
     new_match_data = {}
-
-    # add matches and champions table to the class
 
     def __init__(self):
         self.new_matches = []
@@ -57,7 +55,6 @@ class LolParser(object):
             player_matches_response.raise_for_status()
             player_matches = json.loads(player_matches_response.text)
         except Exception as e:
-            print(e)
             if e.response.status_code == 403:
                 print("Api key is probably expired")
 

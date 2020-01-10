@@ -21,15 +21,14 @@ class LolAccount(object):
     #This saves the users previous matches, and new matches to be added.
     def get_user_matches(self):
         while self.game_index < LolParser.max_game_index:
-            self.add_user_match_history(self.game_index, self.game_index+10) 
+            self.add_user_match_history(self.game_index, self.game_index+100) 
             if not self.user_matches:
                 break
 
+            self.game_index += 100
 
-            self.game_index += 10
-
-    # sets the previous_matches and new_player_matches properties. Maybe change this from pd to not pd and use db instead?
-    def add_user_match_history(self, start_index=0, end_index=10):
+    # sets the previous_matches and new_player_matches properties.
+    def add_user_match_history(self, start_index=0, end_index=100):
         player_matches = LolParser.get_account_info(self.account_name, start_index, end_index)
         select_previous_matches = "SELECT match_id FROM {}_match_history;".format(self.account_name)
         player_match_history = pd.read_sql(select_previous_matches, LolParser.connection)
@@ -37,7 +36,6 @@ class LolAccount(object):
         for match in player_match_history['match_id']:
             self.previous_player_matches.append(match)
 
-        # could maybe improve this by just selecting games that are in user table but not in matches
         for match in player_matches['matches']:
             if match['gameId'] not in self.previous_player_matches and match['gameId'] > 200000000:
                 if match['queue'] in LolParser.match_types:
@@ -47,7 +45,7 @@ class LolAccount(object):
                     self.user_matches.append(match['gameId'])
         return
 
-    # Gets all the stats and puts them into the table.
+    # Gets all the stats for a single player/match and puts them into the table.
     def update_player_table_stats(self):
         print("Updating {}'s table data".format(self.account_name))
 
@@ -63,9 +61,6 @@ class LolAccount(object):
             for participant in match_data['participants']:
                 participant_champ = participant['championId']
                 
-                # pull the champ name from the db so we can store it here.
-
-
                 # if this participant is us, get some stats
                 if participant_champ == champion:
                     kills = participant['stats']['kills']
@@ -76,9 +71,8 @@ class LolAccount(object):
                     damage_to_turrets = participant['stats']['damageDealtToTurrets']
                     vision_wards_bought = participant['stats']['visionWardsBoughtInGame']
                     wards_killed = participant['stats']['wardsKilled']
-                    champ_name = self.get_champ_name_from_db(champion)
+                    champ_name = self.get_champ_name(champion)
                     
-
                     if 'firstBloodKill' in participant['stats']:
                         first_blood_kill = participant['stats']['firstBloodKill']
                     else:
@@ -97,18 +91,16 @@ class LolAccount(object):
                     if role != "NONE":
                         enemy_champ = self.get_enemy_champ(role, champion, match_data['participants'])
                         if enemy_champ != None:
-                            enemy_champ_name = self.get_champ_name_from_db(enemy_champ)
+                            enemy_champ_name = self.get_champ_name(enemy_champ)
                         else:
                             enemy_champ_name = None
                     else:
                         enemy_champ = None 
                         enemy_champ_name = None
                     
-                    # get a list of items
                     champ_items = self.get_items(participant['stats'])
                     champ_perks = self.get_perks(participant['stats'])
 
-                    # update this match in the table
                     match_stats_insert = self.user_table.update().values( 
                             kills=kills,
                             deaths=deaths,
@@ -133,9 +125,10 @@ class LolAccount(object):
                     results = LolParser.connection.execute(match_stats_insert)
                     break # gets us outta the loop as soon as we put our data in.
                     
+    #puts all the team based data into its table.
     def update_matches_table(self):
        print("Adding {}'s new matches to the matches table.".format(self.account_name))
-       previous_matches = [] # this needs to change to be better, but for some reason my match not in exisiting matches condition isn't working.
+       previous_matches = [] # this needs to changed to be better, but for some reason my match not in exisiting matches condition isn't working.
 
        select_existing_matches = "SELECT match_id FROM matches;"
        existing_match_history = pd.read_sql(select_existing_matches, LolParser.connection)
@@ -144,29 +137,10 @@ class LolAccount(object):
 
        for match in self.user_matches:
             if match not in previous_matches:
-                # get this match from the big list of match data
+                # get this matches data from the big collection.
                 match_data = LolParser.new_match_data[int(match)]
                  
-                # determine what team we're on stick all this in 'get_team_data' which accepts uh, a match
-                session = orm.scoped_session(LolParser.sm)
-                row = session.query(self.user_table).filter_by(match_id=match).first()
-                session.close()
-
-                champion = row.champion
-                for participant in match_data['participants']:
-                    participant_champ = participant['championId']
-                    if participant_champ == champion:
-                        team_id = participant['teamId']
-                        if team_id == 100:
-                            team_data = match_data['teams'][0]
-                            enemy_team_data = match_data['teams'][1]
-                            enemy_team_id = 200
-                            break
-                        elif team_id == 200:
-                            team_data = match_data['teams'][1]
-                            enemy_team_data = match_data['teams'][0]
-                            enemy_team_id = 100
-                            break
+                team_data, enemy_team_data, team_id, enemy_id = self.get_team_data(match, match_data)
 
                 # get some team information.
                 game_outcome = team_data['win']
@@ -213,8 +187,7 @@ class LolAccount(object):
 
                 results = LolParser.connection.execute(matches_table_insert)
             else:
-                # we need to update the current one with our new participant because several people we care about were in this match
-                #get current participants
+                # This match was already in the table, but another one of our players was in this game, so we need to add them to participants.
                 session = orm.scoped_session(LolParser.sm)
                 row = session.query(LolParser.matches_table).filter_by(match_id=match).first()
                 session.close()
@@ -225,7 +198,6 @@ class LolAccount(object):
 
                 results = LolParser.connection.execute(match_participants_update)
 
-    #add xp-per-min
     def get_gold_cs_xp_delta(self, timeline):
         num_of_deltas = 0
         total_gold = 0
@@ -308,10 +280,12 @@ class LolAccount(object):
         else:
             return None
 
+    # pretty sure duration doesn't quite work, but...
     def get_start_time_and_duration(self, match):
         match_data = LolParser.new_match_data[int(match)]
         
         start_t = match_data['gameCreation']
+
         # Creation includes miliseconds which we don't care about.
         start_t = start_t / 1000
         start_t = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_t))
@@ -325,8 +299,7 @@ class LolAccount(object):
         
         return start_t, duration
 
-    def get_champ_name_from_db(self, champ_id):
-        #you know, it probably might make sense to store names in memory instead of transacting so much.
+    def get_champ_name(self, champ_id):
         session = orm.scoped_session(LolParser.sm)
         champion_row = session.query(LolParser.champs_table).filter_by(key=champ_id).first()
         session.close()
@@ -339,9 +312,9 @@ class LolAccount(object):
         enemies = ""
         for participant in match_data['participants']:
             if participant['teamId'] == team_id:
-                allies += "{}, ".format(self.get_champ_name_from_db(participant['championId']))
+                allies += "{}, ".format(self.get_champ_name(participant['championId']))
             else:
-                enemies += "{}, ".format(self.get_champ_name_from_db(participant['championId']))
+                enemies += "{}, ".format(self.get_champ_name(participant['championId']))
 
         allies = allies[:-2]
         enemies = enemies[:-2]
@@ -352,7 +325,7 @@ class LolAccount(object):
         list_of_bans = ""
 
         for ban in team_data['bans']:
-            list_of_bans += "{}, ".format(self.get_champ_name_from_db(ban['championId']))
+            list_of_bans += "{}, ".format(self.get_champ_name(ban['championId']))
 
         list_of_bans = list_of_bans[:-2] # removes the last two characters
         return list_of_bans
@@ -384,7 +357,7 @@ class LolAccount(object):
                 #session = orm.scoped_session(LolParser.sm)
                 #row = session.query(LolParser.items_table).filter_by(key=item).first()
                 #session.close()
-                champ_perks = "{}, ".format(participant_stats[perk])
+                champ_perks += "{}, ".format(participant_stats[perk])
 
                 #if row:
                 #    champ_perks = "{}, ".format(row.name)
@@ -393,3 +366,26 @@ class LolAccount(object):
 
         champ_perks = champ_perks[:-2]
         return champ_perks
+
+    def get_team_data(self, match, match_data):
+        session = orm.scoped_session(LolParser.sm)
+        row = session.query(self.user_table).filter_by(match_id=match).first()
+        session.close()
+
+        champion = row.champion
+        for participant in match_data['participants']:
+            participant_champ = participant['championId']
+            if participant_champ == champion:
+                team_id = participant['teamId']
+                if team_id == 100:
+                    team_data = match_data['teams'][0]
+                    enemy_team_data = match_data['teams'][1]
+                    enemy_team_id = 200
+                    break
+                elif team_id == 200:
+                    team_data = match_data['teams'][1]
+                    enemy_team_data = match_data['teams'][0]
+                    enemy_team_id = 100
+                    break
+
+        return team_data, enemy_team_data, team_id, enemy_team_id
