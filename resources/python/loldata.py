@@ -14,8 +14,7 @@ def main():
     parser = LolParser()
 
     # Set a couple things
-    LolParser.max_game_index = 9
-    LolParser.accounts = ['spaynkee', 'dumat']
+    LolParser.max_game_index = 7000
 
     # Create a list of account objects with the account name set.
     account_list = [LolAccount(acc_name) for acc_name in LolParser.accounts]
@@ -23,7 +22,8 @@ def main():
     for acc in account_list:
         print("Updating {}'s matches".format(acc.account_name))
 
-        # gets every match for this particular user.
+        # gets every match for this particular user
+        acc.set_user_id()
         acc.get_user_matches()
 
         if not acc.user_matches:
@@ -39,12 +39,6 @@ def main():
         acc.update_player_table_stats()
         
         acc.update_matches_table()
-
-        # update player opponent needs a big change, maybe some other day. I have something in place currently.
-        
-        # updating the matches table
-
-        # ??
 
     return
 

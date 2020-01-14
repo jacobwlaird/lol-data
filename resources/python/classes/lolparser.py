@@ -33,7 +33,7 @@ class LolParser(object):
     matches_table = db.Table('matches', metadata, autoload=True, autoload_with=engine)
     items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
 
-    accounts = ['spaynkee', 'dumat', 'archemlis']
+    accounts = ['spaynkee', 'dumat', 'archemlis', 'stylus_crude', 'dantheninja6156', 'csqward'] 
     match_types = [400, 410, 420, 440, 700] # make sure this includes the new types 
 
     api_key = config.get('RIOT', 'api_key')
@@ -43,14 +43,9 @@ class LolParser(object):
         self.new_matches = []
 
     @classmethod
-    def get_account_info(cls, name, start_index, end_index):
+    def get_account_info(cls, name, account_id, start_index, end_index):
         try:
             player_matches = {}
-            account_response = requests.get(''.join([cls.base_summoner_url, cls.account_name_url, name, "?api_key=", cls.api_key]))
-            account_response.raise_for_status()
-            account_data = json.loads(account_response.text)
-            account_id = account_data['accountId']
-            time.sleep(.2)
             player_matches_response = requests.get(''.join([cls.base_match_url, cls.matches_url, account_id, "?beginIndex=", str(start_index), "&endIndex=", str(end_index), "&api_key=", cls.api_key]))
             player_matches_response.raise_for_status()
             player_matches = json.loads(player_matches_response.text)

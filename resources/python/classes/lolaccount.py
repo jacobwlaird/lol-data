@@ -17,6 +17,7 @@ class LolAccount(object):
         self.user_matches = []
         self.previous_player_matches = []
         self.user_table = db.Table('{}_match_history'.format(self.account_name), LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
+        self.account_id = '' #This is needed to get our matches later.
 
     #This saves the users previous matches, and new matches to be added.
     def get_user_matches(self):
@@ -27,9 +28,23 @@ class LolAccount(object):
 
             self.game_index += 100
 
+    def set_user_id(self):
+        # this will call the api once, to get our account id, so we dont double call it.
+        try:
+            account_response = requests.get(''.join([LolParser.base_summoner_url, LolParser.account_name_url, self.account_name, "?api_key=", LolParser.api_key]))
+            account_response.raise_for_status()
+            account_data = json.loads(account_response.text)
+            self.account_id = account_data['accountId']
+        except Exception as e:
+            if e.response.status_code == 403:
+                print("Api key is probably expired")
+
+            print("set_user_id broke")
+
+
     # sets the previous_matches and new_player_matches properties.
     def add_user_match_history(self, start_index=0, end_index=100):
-        player_matches = LolParser.get_account_info(self.account_name, start_index, end_index)
+        player_matches = LolParser.get_account_info(self.account_name, self.account_id, start_index, end_index)
         select_previous_matches = "SELECT match_id FROM {}_match_history;".format(self.account_name)
         player_match_history = pd.read_sql(select_previous_matches, LolParser.connection)
 
@@ -280,7 +295,6 @@ class LolAccount(object):
         else:
             return None
 
-    # pretty sure duration doesn't quite work, but...
     def get_start_time_and_duration(self, match):
         match_data = LolParser.new_match_data[int(match)]
         

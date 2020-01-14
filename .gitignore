@@ -1,5 +1,5 @@
 general.cfg
+aws.cfg
 tests/*
-resources/scripts
 resources/python/classes/__pycache__
 .DS_Store
