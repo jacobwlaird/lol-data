@@ -1,12 +1,12 @@
 import sqlalchemy as db
 import configparser
 from sqlalchemy import orm
+from sys import argv
 
 import pymysql
 
+# well this script won't be used much, but alright we really out here.
 accounts = ['spaynkee', 'dumat', 'archemlis', 'stylus_crude', 'dantheninja6156', 'csqward']
-accounts = ['spaynkee', 'dumat', 'archemlis']
-accounts = ['spaynkee']
 
 aws_config = configparser.ConfigParser()
 aws_config.read('./aws.cfg')
@@ -41,6 +41,7 @@ aws_session = orm.scoped_session(aws_sm)
 results = aws_session.query(aws_matches_table).all() # this may not be all()
 aws_session.close()
 
+update = argv[1]
 # updates the matches table
 for row in results:
     try:
@@ -80,9 +81,38 @@ for account in accounts:
     aws_session.close()
 
     for row in results:
-        try:
-            user_matches_insert = user_matches_table.insert().values( 
-                    match_id=row.match_id,
+        if update == False:
+            try:
+                user_matches_insert = user_matches_table.insert().values(
+                        match_id=row.match_id,
+                        kills=row.kills,
+                        deaths=row.deaths,
+                        assists=row.assists,
+                        role=row.role,
+                        wards_placed=row.wards_placed,
+                        damage_to_champs=row.damage_to_champions,
+                        damage_to_turrets=row.damage_to_turrets,
+                        vision_wards_bought=row.vision_wards_bought,
+                        gold_per_minute=row.gold_per_minute,
+                        creeps_per_minute=row.creeps_per_minute,
+                        xp_per_minute=None,
+                        champion=row.champion,
+                        champion_name=row.champion_name,
+                        enemy_champion=row.enemy_champion,
+                        enemy_champion_name=row.enemy_champion_name,
+                        first_blood=row.first_blood,
+                        first_blood_assist=row.first_blood_assist,
+                        items=None,
+                        perks=None,
+                        wards_killed=row.wards_killed)
+
+                results = connection.execute(user_matches_insert)
+                print("updating {} match history with match {}".format(account, row.match_id))
+            except Exception as e:
+                continue
+
+        else:
+            user_matches_update = user_matches_table.update().values(
                     kills=row.kills,
                     deaths=row.deaths,
                     assists=row.assists,
@@ -94,6 +124,7 @@ for account in accounts:
                     gold_per_minute=row.gold_per_minute,
                     creeps_per_minute=row.creeps_per_minute,
                     xp_per_minute=None,
+                    champion=row.champion,
                     champion_name=row.champion_name,
                     enemy_champion=row.enemy_champion,
                     enemy_champion_name=row.enemy_champion_name,
@@ -101,10 +132,8 @@ for account in accounts:
                     first_blood_assist=row.first_blood_assist,
                     items=None,
                     perks=None,
-                    wards_killed=row.wards_killed)
+                    wards_killed=row.wards_killed).where(user_matches_table.c.match_id==row.match_id)
 
-            results = connection.execute(user_matches_insert)
+            results = connection.execute(user_matches_update)
             print("updating {} match history with match {}".format(account, row.match_id))
-        except Exception as e:
-            continue
 

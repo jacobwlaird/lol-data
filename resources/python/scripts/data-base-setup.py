@@ -4,7 +4,8 @@ import os
 import os.path
 import time
 from sqlalchemy import Column, Table, Integer, String, BigInteger, Boolean, Float, TIMESTAMP, Time, MetaData
-from .classes.lolparser import LolParser
+
+from classes.lolparser import LolParser
 
 users = LolParser.accounts
 

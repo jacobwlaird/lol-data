@@ -8,13 +8,17 @@ import pandas as pd
 import sqlalchemy as db
 from classes.lolparser import LolParser
 from classes.lolaccount import LolAccount
+from sys import argv
 
 def main():
     # Create a new parser class
     parser = LolParser()
 
     # Set a couple things
-    LolParser.max_game_index = 7000
+    if len(argv) == 2:
+        LolParser.max_game_index = int(argv[1])
+    else:
+        parser.max_game_index = 7000
 
     # Create a list of account objects with the account name set.
     account_list = [LolAccount(acc_name) for acc_name in LolParser.accounts]
