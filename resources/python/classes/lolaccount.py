@@ -7,7 +7,7 @@ import time
 import pandas as pd
 import sqlalchemy as db
 import time
-from sqlalchemy import orm
+from sqlalchemy import orm, and_
 from .lolparser import LolParser
 
 class LolAccount(object):
@@ -16,17 +16,18 @@ class LolAccount(object):
         self.game_index = 0
         self.user_matches = []
         self.previous_player_matches = []
-        self.user_table = db.Table('{}_match_history'.format(self.account_name), LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
+
         self.account_id = '' #This is needed to get our matches later.
 
     #This saves the users previous matches, and new matches to be added.
     def get_user_matches(self):
         while self.game_index < LolParser.max_game_index:
-            self.add_user_match_history(self.game_index, self.game_index+100) 
+            self.add_user_match_history(self.game_index, self.game_index+100)  #these should be 100
             if not self.user_matches:
                 break
 
             self.game_index += 100
+
 
     def set_user_id(self):
         # this will call the api once, to get our account id, so we dont double call it.
@@ -44,8 +45,9 @@ class LolAccount(object):
 
     # sets the previous_matches and new_player_matches properties.
     def add_user_match_history(self, start_index=0, end_index=100):
+        # This has to only select the current loop users matches.
         player_matches = LolParser.get_account_info(self.account_name, self.account_id, start_index, end_index)
-        select_previous_matches = "SELECT match_id FROM {}_match_history;".format(self.account_name)
+        select_previous_matches = "SELECT match_id FROM match_data WHERE player = '{}';".format(self.account_name, self.account_name)
         player_match_history = pd.read_sql(select_previous_matches, LolParser.connection)
 
         for match in player_match_history['match_id']:
@@ -54,7 +56,9 @@ class LolAccount(object):
         for match in player_matches['matches']:
             if match['gameId'] not in self.previous_player_matches and match['gameId'] > 200000000:
                 if match['queue'] in LolParser.match_types:
-                    match_sql_insert = db.insert(self.user_table).values(match_id=match['gameId'], champion=match['champion'])
+                    match_sql_insert = db.insert(LolParser.match_data_table).values(match_id=match['gameId'], 
+                            player=self.account_name,
+                            champion=match['champion'])
 
                     results = LolParser.connection.execute(match_sql_insert)
                     self.user_matches.append(match['gameId'])
@@ -62,11 +66,13 @@ class LolAccount(object):
 
     # Gets all the stats for a single player/match and puts them into the table.
     def update_player_table_stats(self):
-        print("Updating {}'s table data".format(self.account_name))
+        print("Updating {}'s match data".format(self.account_name))
 
         for match in self.user_matches:
             session = orm.scoped_session(LolParser.sm)
-            row = session.query(self.user_table).filter_by(match_id=match).first()
+            # this also has to filter by player name?
+            row = session.query(LolParser.match_data_table).filter(and_(LolParser.match_data_table.c.match_id==match, 
+                LolParser.match_data_table.c.player==self.account_name)).first()
             session.close()
 
             champion = row.champion
@@ -116,7 +122,8 @@ class LolAccount(object):
                     champ_items = self.get_items(participant['stats'])
                     champ_perks = self.get_perks(participant['stats'])
 
-                    match_stats_insert = self.user_table.update().values( 
+                    #match_stats_insert = self.user_table.update().values( 
+                    match_stats_insert = LolParser.match_data_table.update().values( 
                             kills=kills,
                             deaths=deaths,
                             assists=assists,
@@ -135,17 +142,17 @@ class LolAccount(object):
                             first_blood_assist=first_blood_assist,
                             items=champ_items,
                             perks=champ_perks,
-                            wards_killed=wards_killed).where(self.user_table.c.match_id == match)
+                            wards_killed=wards_killed).where(
+                                and_(LolParser.match_data_table.c.match_id == match, LolParser.match_data_table.c.player == self.account_name))
 
                     results = LolParser.connection.execute(match_stats_insert)
                     break # gets us outta the loop as soon as we put our data in.
                     
-    #puts all the team based data into its table.
-    def update_matches_table(self):
-       print("Adding {}'s new matches to the matches table.".format(self.account_name))
+    def update_team_data_table(self):
+       print("Adding {}'s new matches to the team_data table.".format(self.account_name))
        previous_matches = [] # this needs to changed to be better, but for some reason my match not in exisiting matches condition isn't working.
 
-       select_existing_matches = "SELECT match_id FROM matches;"
+       select_existing_matches = "SELECT match_id FROM team_data;"
        existing_match_history = pd.read_sql(select_existing_matches, LolParser.connection)
        for match in existing_match_history['match_id']:   
             previous_matches.append(match)
@@ -179,7 +186,7 @@ class LolAccount(object):
                 allies, enemies = self.get_allies_and_enemies(team_id, match)
                 start_time, duration = self.get_start_time_and_duration(match) 
 
-                matches_table_insert = db.insert(LolParser.matches_table).values(match_id=match, 
+                team_data_table_insert = db.insert(LolParser.team_data_table).values(match_id=match, 
                         participants=self.account_name,
                         win=game_outcome,
                         first_blood=first_blood,
@@ -200,16 +207,16 @@ class LolAccount(object):
                         duration=duration
                         )
 
-                results = LolParser.connection.execute(matches_table_insert)
+                results = LolParser.connection.execute(team_data_table_insert)
             else:
                 # This match was already in the table, but another one of our players was in this game, so we need to add them to participants.
                 session = orm.scoped_session(LolParser.sm)
-                row = session.query(LolParser.matches_table).filter_by(match_id=match).first()
+                row = session.query(LolParser.team_data_table).filter_by(match_id=match).first()
                 session.close()
 
                 current_participants = row.participants
-                match_participants_update = LolParser.matches_table.update().values( 
-                        participants="{}, {}".format(current_participants, self.account_name)).where(LolParser.matches_table.c.match_id == match)
+                match_participants_update = LolParser.team_data_table.update().values( 
+                        participants="{}, {}".format(current_participants, self.account_name)).where(LolParser.team_data_table.c.match_id == match)
 
                 results = LolParser.connection.execute(match_participants_update)
 
@@ -368,7 +375,7 @@ class LolAccount(object):
         perks = ['perk0', 'perk1', 'perk2', 'perk3', 'perk4', 'perk5']
         for perk in perks:
             if perk:
-                #session = orm.scoped_session(LolParser.sm)
+               #session = orm.scoped_session(LolParser.sm)
                 #row = session.query(LolParser.items_table).filter_by(key=item).first()
                 #session.close()
                 champ_perks += "{}, ".format(participant_stats[perk])
@@ -383,7 +390,9 @@ class LolAccount(object):
 
     def get_team_data(self, match, match_data):
         session = orm.scoped_session(LolParser.sm)
-        row = session.query(self.user_table).filter_by(match_id=match).first()
+        row = session.query(LolParser.match_data_table).filter(and_(LolParser.match_data_table.c.match_id==match, 
+            LolParser.match_data_table.c.player==self.account_name)).first()
+
         session.close()
 
         champion = row.champion

@@ -36,13 +36,14 @@ def main():
         # if the match isn't in the big list of data to be stored, add it. Otherwise, don't.
         for match in acc.user_matches:
             if match not in LolParser.new_match_data:
-                parser.get_match_data(match)
+                match_json = parser.get_match_data(match)
+                if match_json:
+                    parser.store_json_data(match, match_json)
 
         print("Added {} new matches to {}'s matches".format(len(acc.user_matches), acc.account_name))
 
         acc.update_player_table_stats()
-        
-        acc.update_matches_table()
+        acc.update_team_data_table()
 
     return
 

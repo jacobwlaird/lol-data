@@ -7,32 +7,16 @@ from sqlalchemy import Column, Table, Integer, String, BigInteger, Boolean, Floa
 
 from classes.lolparser import LolParser
 
-# Look at the api and see what kind of info we want to keep for a particular username....
-# Players -- Username based data, uuids linking to the team_match_data table 
-# account_id string
-# name string
-
-# Match data
-# Team data
-
-# Create the players table
-player_data_table = Table('player_data', LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
-player_data_table.drop(LolParser.engine)
-
-# create the player_data table
-player_data_table = Table('player_data',
-        MetaData(),
-        Column('account_id', String, primary_key=True),
-        Column('user_name', String(40)))
-
-player_data_table.create(LolParser.engine)
-
 # drop the team_match_data table.
-team_match_data_table = Table('team_match_data', LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
-team_match_data_table.drop(LolParser.engine)
+try:
+    team_data_table = Table('team_data', LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
+    team_data_table.drop(LolParser.engine)
+except:
+    print("Hey, the team_data table probably didn't exist, so we're just gonna create it instead of dropping it and then creating it.")
+
 
 # create the team_match_data table
-team_match_data_table = Table('team_match_data',
+team_data_table = Table('team_data',
         MetaData(),
         Column('match_id', BigInteger, primary_key=True),
         Column('game_version', String(40)),
@@ -54,17 +38,19 @@ team_match_data_table = Table('team_match_data',
         Column('start_time', TIMESTAMP), 
         Column('duration', Time))
 
-team_match_data_table.create(LolParser.engine)
+team_data_table.create(LolParser.engine)
 
-matches_table = Table('match_data', LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
-
-# Drop the matches table...
-matches_table.drop(LolParser.engine)
+try:
+    matches_table = Table('match_data', LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
+    matches_table.drop(LolParser.engine)
+except:
+    print("Hey, the match_data table probably didn't exist, so we're just gonna create it instead of dropping it and then creating it.")
 
 matches_table = Table('match_data',
         MetaData(),
-        Column('match_id', BigInteger, primary_key=True),
-        Column('player', String(40)), # This is the new column for player foreign key? Might just use api user code or whatevr.
+        Column('id', Integer, primary_key=True, autoincrement=True), 
+        Column('match_id', BigInteger), 
+        Column('player', String(40)),
         Column('role', String(10)),
         Column('champion', Integer),
         Column('champion_name', String(25)),
@@ -88,4 +74,3 @@ matches_table = Table('match_data',
         )
 
 matches_table.create(LolParser.engine)
-
