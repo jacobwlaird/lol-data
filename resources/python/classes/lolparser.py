@@ -16,7 +16,7 @@ class LolParser(object):
     match_url = "matches/"
 
     config = configparser.ConfigParser()
-    config.read('./general.cfg')
+    config.read('./resources/python/general.cfg')
     max_game_index = 7000 
 
     db_host = config.get('DATABASE', 'db_id')

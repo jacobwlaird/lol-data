@@ -53,6 +53,9 @@ class LolAccount(object):
         for match in player_match_history['match_id']:
             self.previous_player_matches.append(match)
 
+        if not 'match' in player_matches.keys():
+            return
+
         for match in player_matches['matches']:
             if match['gameId'] not in self.previous_player_matches and match['gameId'] > 200000000:
                 if match['queue'] in LolParser.match_types:
