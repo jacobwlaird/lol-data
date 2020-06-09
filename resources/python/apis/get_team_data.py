@@ -4,7 +4,7 @@ import sqlalchemy as db
 import configparser
 import sys
 
-def get_match_data(prod=True):
+def get_team_data(prod=True):
 
     config = configparser.ConfigParser()
 
@@ -22,11 +22,11 @@ def get_match_data(prod=True):
     connection = engine.connect()
     metadata = db.MetaData()
 
-    matches_table = db.Table('matches', metadata, autoload=True, autoload_with=engine)
-    select_query = matches_table.select()
+    team_data_table = db.Table('team_data', metadata, autoload=True, autoload_with=engine)
+    select_query = team_data_table.select().order_by(team_data_table.c.match_id.desc())
     results = connection.execute(select_query).fetchall()
 
-    row_headers = matches_table.c.keys()
+    row_headers = team_data_table.c.keys()
 
     json_data=[]
     for result in results:
@@ -39,7 +39,7 @@ def get_match_data(prod=True):
 
 def main():
 
-	return get_match_data(sys.argv[1])
+	return get_teamo_data(sys.argv[1])
 
 if __name__ == "__main__":
 	main()

@@ -22,11 +22,12 @@ def get_data(name, prod=True):
     connection = engine.connect()
     metadata = db.MetaData()
 
-    user_table = db.Table('{}_match_history'.format(name), metadata, autoload=True, autoload_with=engine)
-    select_query = user_table.select()
+    match_data_table = db.Table('match_data', metadata, autoload=True, autoload_with=engine)
+	# select where player is name
+    select_query = match_data_table.select().where(match_data_table.c.player == name)
     results = connection.execute(select_query).fetchall()
 
-    row_headers = user_table.c.keys()
+    row_headers = match_data_table.c.keys()
 
     json_data=[]
     for result in results:
