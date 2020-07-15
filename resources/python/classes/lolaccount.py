@@ -53,7 +53,7 @@ class LolAccount(object):
         for match in player_match_history['match_id']:
             self.previous_player_matches.append(match)
 
-        if not 'match' in player_matches.keys():
+        if not 'matches' in player_matches.keys():
             return
 
         for match in player_matches['matches']:
