@@ -24,7 +24,7 @@ def get_data(name, prod=True):
 
     match_data_table = db.Table('match_data', metadata, autoload=True, autoload_with=engine)
 	# select where player is name
-    select_query = match_data_table.select().where(match_data_table.c.player == name)
+    select_query = match_data_table.select().where(match_data_table.c.player == name).order_by(match_data_table.c.match_id.desc())
     results = connection.execute(select_query).fetchall()
 
     row_headers = match_data_table.c.keys()
