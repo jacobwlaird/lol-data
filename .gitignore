@@ -3,3 +3,8 @@ aws.cfg
 tests/*
 resources/python/classes/__pycache__
 .DS_Store
+node_modules/*
+todo
+Lol-Data_nginx.conf
+Lol-Data_uwsgi.ini
+Lol-Data_uwsgi.sock
