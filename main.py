@@ -4,16 +4,23 @@ from resources.python.apis.get_user_data import get_data
 from resources.python.apis.get_team_data import get_team_data
 
 
-app = Flask(__name__)
+# app = Flask(__name__) # Dev
+app = Flask(__name__, static_folder='./build', static_url_path='/') # prod
+
 
 @app.route("/")
 def main():
-	return render_template('data.html')
+        return app.send_static_file('index.html')
 
 @app.route("/update", methods=['POST'])
 def update():
 	# depreciated
 	return render_template('data.html', message="")
+
+@app.route("/react_test")
+def react_test():
+    #return Response({'message': "Hey yeah"}, status=200, mimetype='application/json')
+    return {"message": "Hey yeah this is it"}
 
 @app.route("/api/get_user_data")
 def returnData():
@@ -45,4 +52,4 @@ def getRole():
 	return render_template('data.html', message="")
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host='0.0.0.0', port=5000)
