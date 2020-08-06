@@ -38,8 +38,7 @@ def get_team_data(prod=True):
         print(json_data) 
 
 def main():
-
-	return get_teamo_data(sys.argv[1])
+	return get_team_data(sys.argv[1])
 
 if __name__ == "__main__":
 	main()
