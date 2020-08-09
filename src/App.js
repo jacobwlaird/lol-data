@@ -11,26 +11,16 @@ function Table(props) {
 		  });
 	}, []);
 
-
-//	{teamData.map(game => (
-//		<tr key={game.match_id}>
-//			<td>ok: {game.match_id}</td>
-//			<td>{game.participants}</td>
-//		</tr>
-//	))}
-	return (<table>
-
-			<tr>
-				<th>Match_id</th>
-				<th>UglyJson</th>
-			</tr>
-			<tr>
-				<td> td1 </td>
-				<td> td2 </td>
-			</tr>
-
-		</table>
-	);
+	//Declare a header, then append all this, and then return it?
+	// need a list of game. info.
+	return Array.from(teamData).map(game => (
+		<tr key={game.match_id}>
+			<td>{game.match_id}</td>
+			<td>{game.version}</td>
+			<td>{game.first_blood === 1 ? 'True' : 'False'}</td>
+			<td>{game.participants}</td>
+		</tr>
+	))
 }
 
 function App() {
