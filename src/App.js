@@ -3,7 +3,7 @@ import logo from './logo.svg';
 import './App.css';
 import AppBar from '@material-ui/core/AppBar';
 import IconButton from '@material-ui/core/IconButton';
-import ToolBar from '@material-ui/core/ToolBar';
+import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import MenuIcon from '@material-ui/icons/Menu';
 import { makeStyles } from '@material-ui/core/styles';
@@ -74,14 +74,14 @@ const useStyles = makeStyles((theme) => ({
 
 function NavBar(props) {
 	return (<AppBar position="static">
-		  <ToolBar variant="dense">
+		  <Toolbar variant="dense">
 		    <IconButton edge="start" color="inherit" aria-label="menu">
 		      <MenuIcon />
 		    </IconButton>
 		    <Typography variant="h6" color="inherit">
 		    Hell yeah brøther
 		    </Typography>
-		  </ToolBar>
+		  </Toolbar>
 		</AppBar>)
 }
 
