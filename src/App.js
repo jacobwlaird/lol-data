@@ -8,69 +8,8 @@ import Typography from '@material-ui/core/Typography';
 import MenuIcon from '@material-ui/icons/Menu';
 import { makeStyles } from '@material-ui/core/styles';
 import MyTable from './components/MyTable';
-
-//All table imports here
-import Table from '@material-ui/core/Table';
-import TableBody from '@material-ui/core/TableBody';
-import TableCell from '@material-ui/core/TableCell';
-import TableContainer from '@material-ui/core/TableContainer';
-import TableHead from '@material-ui/core/TableHead';
-import TableRow from '@material-ui/core/TableRow';
-import Paper from '@material-ui/core/Paper';
-
-
-const useStyles = makeStyles((theme) => ({
-	  root: {
-		      flexGrow: 1,
-		    },
-	  menuButton: {
-		      marginRight: theme.spacing(2),
-		    },
-}));
-
-//function MyTable(props) {
-//	const [teamData, setTeamData] = useState(0);
-//	const classes = useStyles();
-//
-//	useEffect(() => {
-//	fetch('/api/get_team_data').then(res => res.json()).then(data => {
-//		    setTeamData(data);
-//		  });
-//	}, []);
-//
-//	//Declare a header, then append all this, and then return it?
-//	// need a list of game. info.
-//	return (
-//	<TableContainer component={Paper}>
-//		      <Table className={classes.table} aria-label="simple table">
-//		        <TableHead>
-//		          <TableRow>
-//		            <TableCell>Match ID</TableCell>
-//		            <TableCell align="right">Participants</TableCell>
-//		            <TableCell align="right">Enemies</TableCell>
-//		            <TableCell align="right">Allies</TableCell>
-//		            <TableCell align="right">Win</TableCell>
-//		          </TableRow>
-//		        </TableHead>
-//		        <TableBody>
-//		          {Array.from(teamData).map(game =>  (
-//				              <TableRow key={game.match_id}>
-//				                <TableCell component="th" scope="row">
-//				                  {game.match_id}
-//				                </TableCell>
-//				                <TableCell align="right">{game.participants}</TableCell>
-//				                <TableCell align="right">{game.enemies}</TableCell>
-//				                <TableCell align="right">{game.allies}</TableCell>
-//				                <TableCell align="right">{game.win}</TableCell>
-//				              </TableRow>
-//				            ))}
-//	        </TableBody>
-//		      </Table>
-//		    </TableContainer>
-//		
-//		
-//	)
-//}
+import { Container } from "reactstrap"
+import "bootstrap/dist/css/bootstrap.min.css"
 
 function NavBar(props) {
 	return (<AppBar position="static">
@@ -87,15 +26,59 @@ function NavBar(props) {
 
 function App() {
 
-	const root = (
-			<div className="App" id="root">
-			<NavBar />
-			<MyTable />
-			</div>
-	);
-	//<NavBar />
+    //For our teams table.
+    const [teamData, setTeamData] = useState(0);
 
-	return root
+    useEffect(() => {
+    fetch('/api/get_team_data').then(res => res.json()).then(data => {
+          setTeamData(data);
+        });
+    }, []);
+
+    const data = Array.from(teamData);
+    console.dir(data);
+
+    const columns = [
+        { Header: "Day Played", accessor: (values) => {
+		const day = values.start_time.substring(0, 10);
+	    return day
+	}},
+	//
+        { Header: "Game Version", accessor: (values) => {
+	    const vers = 0;
+	    if (values.game_version != null)
+	    {
+		const vers = values.game_version.substring(0, 5);
+	    }
+	    return vers
+	}},
+        { Header: "Participants", accessor: "participants"},
+        { Header: "First Blood", accessor: "first_blood"},
+        { Header: "First Dragon", accessor: "first_dragon"},
+        { Header: "First Tower", accessor: "first_tower"},
+        { Header: "First Herald", accessor: "first_rift_herald"},
+        { Header: "First Inhib", accessor: "first_inhib"},
+        { Header: "Dragon Kills", accessor: "dragon_kills"},
+        { Header: "Rift Heralds", accessor: "rift_herald_kills"},
+        { Header: "Inhibs", accessor: "inhib_kills"},
+        { Header: "Allies", accessor: "allies"},
+        { Header: "Enemies", accessor: "enemies"},
+        { Header: "Wonnered?", accessor: (values) => {
+	    const bool = values.win == "Win" ? 'True' : 'False';
+	    return bool
+	    }
+	}
+    ];
+
+    const root = (
+		    <div className="App" id="root">
+		    <NavBar />
+			<MyTable columns={columns} data={data} />
+		    </div>
+    );
+    //<NavBar />
+
+    return root
 
 }
 
