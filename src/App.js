@@ -73,10 +73,14 @@ function App() {
     const root = (
 		    <div className="App" id="root">
 		    <NavBar />
-			<MyTable columns={columns} data={data} />
+			<MyTable columns={columns} data={data} 
+			    getCellProps={cellInfo => ({
+			      style: {
+			      backgroundColor: ((cellInfo.row.cells[13].value ==="True") ? `rgba(0,255,0,.1)`: `rgba(255,0,0,.1)`)
+			    	}})}
+			    />
 		    </div>
     );
-    //<NavBar />
 
     return root
 

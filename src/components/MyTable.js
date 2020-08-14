@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, Fragment} from 'react';
-import { useTable, usePagination } from 'react-table';
+import { useTable, usePagination, useFilters, useSortBy } from 'react-table';
 import { Table, Row, Col, Button, Input, CustomInput  } from 'reactstrap'
+import { Filter, DefaultColumnFilter } from './Filter.js'
 
 //Pagination
 
-const MyTable = ({columns, data}) => {
+const MyTable = ({columns, data, getCellProps}) => {
     const {
 			getTableProps,
 			getTableBodyProps,
@@ -24,10 +25,14 @@ const MyTable = ({columns, data}) => {
 		{
 			columns,
 			data,
-			initialState: { pageIndex: 0, pageSize: 10}
+			initialState: { pageIndex: 0, pageSize: 10},
+			defaultColumn: {Filter: DefaultColumnFilter},
 		},
+		useFilters,
+		useSortBy,
 		usePagination
 	);
+	console.log(getCellProps)
 
 	const onChangeInSelect = event => {
 		  setPageSize(Number(event.target.value))
@@ -38,14 +43,24 @@ const MyTable = ({columns, data}) => {
 		  gotoPage(page)
 	}
 
+	const generateSortingIndicator = column => {
+		  return column.isSorted ? (column.isSortedDesc ? " 🔽" : " 🔼") : ""
+	}
+
     return (
 		<Fragment> 
-	<Table boardered hover {...getTableProps()}>
+	<Table bordered hover {...getTableProps()}>
 		<thead>
 			{headerGroups.map(headerGroup => (
 				<tr {...headerGroup.getHeaderGroupProps()}>
 					{headerGroup.headers.map(column=> (
-						<th {...column.getHeaderProps()}>{column.render("Header")}</th>
+						<th {...column.getHeaderProps()}>
+						<div {...column.getSortByToggleProps()}>
+						{column.render("Header")}
+						{generateSortingIndicator(column)}
+						</div>
+						<Filter column={column}/>
+						</th>
 					))}
 				</tr>
 			))}
@@ -57,7 +72,9 @@ const MyTable = ({columns, data}) => {
 				return (
 					<tr {...row.getRowProps()}>
 						{row.cells.map(cell => {
-							return <td {...cell.getCellProps()}>{cell.render("Cell")}</td>
+							return <td {...cell.getCellProps([getCellProps(cell)])}>
+									{cell.render("Cell")}
+								</td>
 						})}
 					</tr>
 			)
