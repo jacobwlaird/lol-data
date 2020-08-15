@@ -12,6 +12,12 @@ import { Container } from "reactstrap"
 import "bootstrap/dist/css/bootstrap.min.css"
 
 function NavBar(props) {
+
+	useEffect(() => {
+		   document.title = "loldat"
+		//document.icon
+	}, []);
+
 	return (<AppBar position="static">
 		  <Toolbar variant="dense">
 		    <IconButton edge="start" color="inherit" aria-label="menu">
