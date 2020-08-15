@@ -51,10 +51,14 @@ function App() {
 	}},
 	//
         { Header: "Game Version", accessor: (values) => {
-	    const vers = 0;
-	    if (values.game_version != null)
+	    var vers = "";
+	    console.log(values.game_version !== null);
+	    if (values.game_version !== null)
 	    {
-		const vers = values.game_version.substring(0, 5);
+		    //Capture the first
+		    let re = new RegExp(/(\d*.\d*\.)/g);
+		    vers = values.game_version.match(re)[0];
+		    vers = vers.substring(0, vers.length-1);
 	    }
 	    return vers
 	}},

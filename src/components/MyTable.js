@@ -32,7 +32,6 @@ const MyTable = ({columns, data, getCellProps}) => {
 		useSortBy,
 		usePagination
 	);
-	console.log(getCellProps)
 
 	const onChangeInSelect = event => {
 		  setPageSize(Number(event.target.value))
