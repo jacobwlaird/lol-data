@@ -1,6 +1,10 @@
+extern crate actix_files;
 use actix_web::{middleware, web, App, HttpRequest, HttpServer};
+use actix_files::Files;
 mod get_team_data;
 use get_team_data::get_team_data;
+
+use std::path::PathBuf;
 
 //I can write functions that return stuff? so
 //if I have a function call another program, one that does sql, then just returns it as a json
@@ -22,9 +26,10 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .service(web::resource("/index.html").to(|| async { "Is this changed?" }))
             .service(web::resource("/api/get_team_data").to(index))
+            .service(Files::new("/", "./build").index_file("index.html"))
             //These are two different routes established.
     })
-    .bind("0.0.0.0:5000")?
+    .bind("127.0.0.1:5000")?
     .run()
     .await
 }

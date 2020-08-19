@@ -39,7 +39,7 @@ pub fn get_team_data() -> std::string::String {
                 duration: Option<String>
         }
 
-        let url = "mysql://paul:lalala22@192.168.1.3:3306/Lstats";
+        let url = "mysql://user:pass@ip:port/db"; // Don't hack me bro
 
         let pool = mysql::Pool::new(url).unwrap();
         let mut conn = pool.get_conn().unwrap();
@@ -48,7 +48,7 @@ pub fn get_team_data() -> std::string::String {
 
         all_team_data =
         //conn.query_iter("SELECT * FROM team_data ORDER BY match_id DESC LIMIT 1")
-        conn.query_iter("SELECT * FROM team_data")
+        conn.query_iter("SELECT * FROM team_data ORDER BY match_id DESC;")
     .map(|result| {
         result.map(|x| x.unwrap()).map(|mut row| {
 
