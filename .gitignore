@@ -1,4 +1,5 @@
 general.cfg
+config.toml
 aws.cfg
 tests/*
 resources/python/classes/__pycache__

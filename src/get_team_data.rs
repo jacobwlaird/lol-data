@@ -1,32 +1,21 @@
 use rustc_serialize::json;
-use std::time::Instant;
-use mysql::*;
 use mysql::prelude::*;
+use config::*;
+use std::collections::HashMap;
 
 pub fn get_team_data() -> std::string::String {
-        let before = Instant::now();
 
         #[derive(Debug, PartialEq, Eq, RustcEncodable)]
-        struct team_data {
+        struct TeamData {
                 match_id: i64,
                 game_version: Option<String>,
                 win: Option<String>,
                 participants: Option<String>,
-              // // first_blood: u8,
-              //  first_baron: u8,
-              //  first_tower: u8,
-              //  first_dragon: u8,
-              //  first_inhib: u8,
-              //  first_rift_herald: u8,
                 first_blood: Option<String>,
                 first_baron: Option<String>,
                 first_tower: Option<String>,
                 first_dragon: Option<String>,
                 first_inhib: Option<String>,
-               // first_rift_herald: u8,
-               // dragon_kills: u8,
-               // rift_herald_kills: u8,
-               // inhib_kills: u8,
                 first_rift_herald: Option<String>,
                 dragon_kills: Option<String>,
                 rift_herald_kills: Option<String>,
@@ -39,20 +28,31 @@ pub fn get_team_data() -> std::string::String {
                 duration: Option<String>
         }
 
-        let url = "mysql://user:pass@ip:port/db"; // Don't hack me bro
+        let mut settings = Config::default();
+        settings.merge(File::with_name("config")).unwrap();
+        let conf = settings.try_into::<HashMap<String, String>>().unwrap();
+
+        //Build our connection string
+        let mut url =  String::from("mysql://");
+        url.push_str(conf.get("db_user").unwrap());
+        url.push(':');
+        url.push_str(conf.get("db_password").unwrap());
+        url.push('@');
+        url.push_str(&conf.get("db_id").unwrap());
+        url.push(':');
+        url.push_str("3306");
+        url.push('/');
+        url.push_str(&conf.get("db_name").unwrap());
 
         let pool = mysql::Pool::new(url).unwrap();
         let mut conn = pool.get_conn().unwrap();
 
-        let mut all_team_data: Vec<team_data> = Vec::new();
-
-        all_team_data =
-        //conn.query_iter("SELECT * FROM team_data ORDER BY match_id DESC LIMIT 1")
+        let all_team_data: Vec<TeamData> =
         conn.query_iter("SELECT * FROM team_data ORDER BY match_id DESC;")
     .map(|result| {
         result.map(|x| x.unwrap()).map(|mut row| {
 
-        team_data {
+        TeamData {
             match_id: row.take("match_id").unwrap(),
             game_version: row.take("game_version").unwrap(),
             win: row.take("win").unwrap(),
@@ -76,8 +76,5 @@ pub fn get_team_data() -> std::string::String {
         }).collect()}).unwrap();
 
         return json::encode(&all_team_data).unwrap();
-
-
-        println!("Elapsed time: {:.2?}", before.elapsed());
 
 }
