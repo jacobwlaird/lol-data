@@ -48,7 +48,7 @@ pub fn get_team_data() -> std::string::String {
         let mut conn = pool.get_conn().unwrap();
 
         let all_team_data: Vec<TeamData> =
-        conn.query_iter("SELECT * FROM team_data ORDER BY match_id DESC;")
+        conn.query_iter("SELECT * FROM team_data ORDER BY match_id DESC limit 1;")
     .map(|result| {
         result.map(|x| x.unwrap()).map(|mut row| {
 
