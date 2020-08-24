@@ -4,7 +4,7 @@ import sqlalchemy as db
 from classes.lolparser import LolParser
 
 #Update the version number in the future if we need to.
-url = "http://ddragon.leagueoflegends.com/cdn/10.15.1/data/en_US/champion.json"
+url = "http://ddragon.leagueoflegends.com/cdn/10.16.1/data/en_US/champion.json"
 res = requests.get(url)
 champ_res = json.loads(res.text)
 champ_data = champ_res['data']

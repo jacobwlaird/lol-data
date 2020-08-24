@@ -173,14 +173,18 @@ class LolAccount(object):
                 first_baron = team_data['firstBaron']
                 first_tower = team_data['firstTower']
                 first_rift_herald = team_data['firstRiftHerald']
-                rift_herald_kills = team_data['riftHeraldKills']
+                ally_rift_herald_kills = team_data['riftHeraldKills']
                 first_dragon = team_data['firstDragon']
-                dragon_kills = team_data['dragonKills']
+                ally_dragon_kills = team_data['dragonKills']
                 first_inhib = team_data['firstInhibitor']
                 inhib_kills = team_data['inhibitorKills']
                 list_of_bans = ""
                 list_of_enemy_bans = ""
                 game_version = match_data['gameVersion']
+
+                # sometimes we need enemy info too.
+                enemy_dragon_kills = enemy_team_data['dragonKills']
+                enemy_rift_herald_kills = enemy_team_data['riftHeraldKills']
 
                 #these could pass in only bans, not the whole object.
                 list_of_bans = self.get_team_bans(team_data)
@@ -196,9 +200,9 @@ class LolAccount(object):
                         first_baron=first_baron,
                         first_tower=first_tower,
                         first_rift_herald=first_rift_herald,
-                        rift_herald_kills=rift_herald_kills,
+                        ally_rift_herald_kills=ally_rift_herald_kills,
                         first_dragon=first_dragon,
-                        dragon_kills=dragon_kills,
+                        ally_dragon_kills=ally_dragon_kills,
                         first_inhib=first_inhib,
                         inhib_kills=inhib_kills,
                         bans=list_of_bans,
@@ -207,6 +211,8 @@ class LolAccount(object):
                         allies=allies,
                         enemies=enemies,
                         start_time=start_time,
+                        enemy_rift_herald_kills=enemy_rift_herald_kills,
+                        enemy_dragon_kills=enemy_dragon_kills,
                         duration=duration
                         )
 

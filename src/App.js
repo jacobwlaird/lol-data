@@ -68,8 +68,10 @@ function App() {
         { Header: "First Tower", accessor: "first_tower"},
         { Header: "First Herald", accessor: "first_rift_herald"},
         { Header: "First Inhib", accessor: "first_inhib"},
-        { Header: "Dragon Kills", accessor: "dragon_kills"},
-        { Header: "Rift Heralds", accessor: "rift_herald_kills"},
+        { Header: "Ally Dragon Kills", accessor: "ally_dragon_kills"},
+        { Header: "Ally Rift Heralds", accessor: "ally_rift_herald_kills"},
+        { Header: "Enemy Dragon Kills", accessor: "enemy_dragon_kills"},
+        { Header: "Enemy Rift Heralds", accessor: "enemy_rift_herald_kills"},
         { Header: "Inhibs", accessor: "inhib_kills"},
         { Header: "Allies", accessor: "allies"},
         { Header: "Enemies", accessor: "enemies"},
@@ -86,7 +88,7 @@ function App() {
 			<MyTable columns={columns} data={data} 
 			    getCellProps={cellInfo => ({
 			      style: {
-			      backgroundColor: ((cellInfo.row.cells[13].value ==="True") ? `rgba(0,255,0,.1)`: `rgba(255,0,0,.1)`)
+			      backgroundColor: ((cellInfo.row.cells[15].value ==="True") ? `rgba(0,255,0,.2)`: `rgba(255,0,0,.2)`)
 			    	}})}
 			    />
 		    </div>
