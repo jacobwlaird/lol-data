@@ -1,6 +1,6 @@
 # LoL Data
 
-Small script I made to pull data from Riot Games API and store it into a database for later use.
+I made some scripts to pull from a public API and store the data into a database. I then made a front end to display that data and do some other things. Tried to learn some new things along the way.
 
-Adding a front end to this soon™
+Find it here: Paulzplace.asuscomm.com
 
