@@ -53,7 +53,7 @@ const MyTable = ({columns, data, getCellProps}) => {
 			{headerGroups.map(headerGroup => (
 				<tr {...headerGroup.getHeaderGroupProps()}>
 					{headerGroup.headers.map(column=> (
-						<th {...column.getHeaderProps()}>
+						<th style={{"width": column.width}} {...column.getHeaderProps()}>
 						<div {...column.getSortByToggleProps()}>
 						{column.render("Header")}
 						{generateSortingIndicator(column)}
