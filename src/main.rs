@@ -8,12 +8,19 @@ use get_team_data::get_team_data;
 #[path = "apis/get_user_data.rs"] mod get_user_data;
 use get_user_data::get_user_data;
 
+#[path = "apis/update_data.rs"] mod update_data;
+use update_data::update_data;
+
 async fn team_data() -> std::string::String {
     get_team_data()
 }
 
 async fn user_data(req: HttpRequest) -> std::string::String {
     get_user_data(req)
+}
+
+async fn update() -> std::string::String {
+    update_data()
 }
 
 #[actix_rt::main]
@@ -27,6 +34,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(middleware::Logger::default())
             .service(web::resource("/api/get_team_data").to(team_data))
             .service(web::resource("/api/get_user_data").to(user_data))
+            .service(web::resource("/api/update_data").to(update))
             .service(Files::new("/", "./build").index_file("index.html"))
     })
     .bind("127.0.0.1:5000")?
