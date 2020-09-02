@@ -4,6 +4,7 @@ import pymysql.cursors as cursors
 import requests
 import json
 import time
+from datetime import datetime as date
 import pandas as pd
 import sqlalchemy as db
 from sqlalchemy import orm
@@ -35,12 +36,14 @@ class LolParser(object):
     team_data_table = db.Table('team_data', metadata, autoload=True, autoload_with=engine)
     items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
     json_data_table = db.Table('json_data', metadata, autoload=True, autoload_with=engine)
+    runs_table = db.Table('script_runs', metadata, autoload=True, autoload_with=engine)
 
     accounts = ['spaynkee', 'dumat', 'archemlis', 'stylus_crude', 'dantheninja6156', 'csqward'] 
     match_types = [400, 410, 420, 440, 700] # make sure this includes new types of matchmade games.
 
     api_key = config.get('RIOT', 'api_key')
     new_match_data = {}
+    match_id_list = "" # this is for storing the ids in the script runs table.
 
     def __init__(self):
         self.new_matches = []
@@ -61,7 +64,7 @@ class LolParser(object):
 
             if e.response.status_code == 429:
                 print("Well that's an unfortunate timeout. I gotchu though fam.")
-                time.sleep(20)
+                time.sleep(10)
                 return cls.get_account_info(name, account_id, start_index, end_index)
 
         return player_matches
@@ -70,7 +73,11 @@ class LolParser(object):
     def get_match_data(cls, match_id):
         try:
             print(''.join(["getting match data for ", str(match_id)]))
-            time.sleep(.2)
+
+            # we want string representation of all added games, so we can track in the runs table.
+            cls.match_id_list = cls.match_id_list + " " + str(match_id)
+
+            time.sleep(.06) # this should keep us around the 20 per 1 second limit.
             matches_response = requests.get(''.join([cls.base_match_url, cls.match_url, str(match_id), "?api_key=", cls.api_key]))
             matches_response.raise_for_status()
             match_json = json.loads(matches_response.text)
@@ -81,7 +88,7 @@ class LolParser(object):
         except Exception as e:
             print(e)
             print("Get_match_data broke, trying again")
-            time.sleep(20)
+            time.sleep(10)
             cls.get_match_data(match_id)
 
         return
@@ -92,4 +99,27 @@ class LolParser(object):
                 json_data=json_formatted_string)
 
         results = cls.connection.execute(json_sql_insert)
+        return
+
+    @classmethod
+    def store_run_info(cls,source):
+        # get the current time and store that too.
+        time_started= date.now().strftime("%Y-%m-%d %H:%M:%S")
+        runs_sql_insert = db.insert(cls.runs_table).values(source=source, 
+                start_time=time_started,
+                status="Running")
+
+        results = cls.connection.execute(runs_sql_insert)
+        return
+
+    @classmethod
+    def update_run_info(cls, status, matches, message):
+        # get the current time and store that too.
+        time_ended = date.now().strftime("%Y-%m-%d %H:%M:%S")
+        runs_sql_update = db.update(cls.runs_table).values(status=status, 
+                matches_added=matches,
+                end_time=time_ended,
+                message=message).where(cls.runs_table.c.status == "Running")
+
+        results = cls.connection.execute(runs_sql_update)
         return

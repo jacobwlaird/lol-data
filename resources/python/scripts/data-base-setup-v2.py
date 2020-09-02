@@ -76,3 +76,22 @@ matches_table = Table('match_data',
         )
 
 matches_table.create(LolParser.engine)
+
+try:
+    runs_table = Table('script_runs', LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
+    runs_table.drop(LolParser.engine)
+except:
+    print("Hey, the script_runs table probably didn't exist, so we're just gonna create it instead of dropping it and then creating it.")
+
+runs_table = Table('script_runs',
+        MetaData(),
+        Column('id', Integer, primary_key=True, autoincrement=True), 
+        Column('source', String(50)),
+        Column('status', String(20)),
+        Column('matches_added', String(60000)), # so this is a large max but idk how else to do it.
+        Column('start_time', TIMESTAMP), 
+        Column('end_time', TIMESTAMP), 
+        Column('message', String(1000)) # so this is a large max but idk how else to do it.
+        )
+
+runs_table.create(LolParser.engine)
