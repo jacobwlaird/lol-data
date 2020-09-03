@@ -7,21 +7,60 @@ import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import MenuIcon from '@material-ui/icons/Menu';
 import Button from '@material-ui/core/Button';
+import Chip from '@material-ui/core/Chip';
 import { makeStyles } from '@material-ui/core/styles';
 import MyTable from './components/MyTable';
 import { Container } from "reactstrap"
 import "bootstrap/dist/css/bootstrap.min.css"
 
 function NavBar({props, updateState}) {
+	//I may not need updateState anymore.
+	const [navBarState, setNavBarState] = useState({
+		chipColor: 'green',
+		chipDisplay: 'none',
+		buttonDisabled: false,
+		updateClicked: false
+	});
+
+	useEffect(() => {
+		document.title = "loldat";
+
+		getScriptStatus();
+		const statusInterval = setInterval(() => {
+			getScriptStatus();
+
+		}, 5000);
+	}, []);
+
+        const getScriptStatus = () => {
+	    fetch('/api/get_script_status').then(res => res.json()).then(data => {
+
+		if(data[0]['status'] === "Running")
+		{
+			setNavBarState({chipColor: "yellow", buttonDisabled: true, chipDisplay: "inline"});
+		}
+		else if (data[0]['status'] === "Success") {
+			setNavBarState({chipColor: "green", buttonDisabled: false, chipDisplay: "none"});
+		}
+
+		});
+        }  
 
 	function update()
 	{
-		//This usually won't work because the request times out after 2 minutes,
-		//and the script takes longer than 2 minutes to run if there are a lot of games
-		fetch('/api/update_data').then(res => res.json()).then(data => {
-		    alert(data.Hey);
-		    updateState();
+	        setNavBarState({buttonDisabled: true, updateClicked:true});
+		
+		fetch('/api/get_script_status').then(res => res.json()).then(data => {
+			if (data[0]['status'] !== "Running")
+			{
+				setNavBarState({chipColor: "yellow", buttonDisabled: true, chipDisplay: "inline"});
+				fetch('/api/update_data').then(res => res.json()).then(data => {
 
+				});
+			}
+			else {
+
+			}
 		});
 	}
 	const useStyles = makeStyles((theme) => ({
@@ -38,9 +77,6 @@ function NavBar({props, updateState}) {
 
 	const classes = useStyles();
 
-	useEffect(() => {
-		   document.title = "loldat"
-	}, []);
 
 	return (<AppBar position="static">
 		  <Toolbar variant="dense">
@@ -50,7 +86,8 @@ function NavBar({props, updateState}) {
 		    <Typography variant="h6" className={classes.title} color="inherit">
 		    Hell yeah bröther
 		    </Typography>
-		    <Button color="inherit" onClick={update}>Update</Button>
+		    <Chip style={{backgroundColor:navBarState.chipColor, display:navBarState.chipDisplay}} label="&nbsp;" />
+		    <Button color="inherit" disabled={navBarState.buttonDisabled} onClick={update}>Update</Button>
 		  </Toolbar>
 		</AppBar>)
 }
