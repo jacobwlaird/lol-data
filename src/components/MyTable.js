@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, Fragment} from 'react';
+import React, { Fragment} from 'react';
 import { useTable, usePagination, useFilters, useSortBy } from 'react-table';
 import { Table, Row, Col, Button, Input, CustomInput  } from 'reactstrap'
 import { Filter, DefaultColumnFilter } from './Filter.js'
@@ -114,7 +114,7 @@ const MyTable = ({columns, data, getCellProps}) => {
 		      />
 		    </Col>
 		    <Col md={2}>
-		      <CustomInput type="select" value={pageSize} onChange={onChangeInSelect}>
+		      <CustomInput id="custInput" type="select" value={pageSize} onChange={onChangeInSelect}>
 		        >
 		        {[10, 20, 30, 40, 50].map(pageSize => (
 					          <option key={pageSize} value={pageSize}>

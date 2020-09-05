@@ -1,96 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import logo from './logo.svg';
 import './App.css';
-import AppBar from '@material-ui/core/AppBar';
-import IconButton from '@material-ui/core/IconButton';
-import Toolbar from '@material-ui/core/Toolbar';
-import Typography from '@material-ui/core/Typography';
-import MenuIcon from '@material-ui/icons/Menu';
-import Button from '@material-ui/core/Button';
-import Chip from '@material-ui/core/Chip';
-import { makeStyles } from '@material-ui/core/styles';
 import MyTable from './components/MyTable';
-import { Container } from "reactstrap"
+import NavBar from './components/NavBar';
 import "bootstrap/dist/css/bootstrap.min.css"
-
-function NavBar({props, updateState}) {
-	//I may not need updateState anymore.
-	const [navBarState, setNavBarState] = useState({
-		chipColor: 'green',
-		chipDisplay: 'none',
-		buttonDisabled: false,
-		updateClicked: false
-	});
-
-	useEffect(() => {
-		document.title = "loldat";
-
-		getScriptStatus();
-		const statusInterval = setInterval(() => {
-			getScriptStatus();
-
-		}, 5000);
-	}, []);
-
-        const getScriptStatus = () => {
-	    fetch('/api/get_script_status').then(res => res.json()).then(data => {
-
-		if(data[0]['status'] === "Running")
-		{
-			setNavBarState({chipColor: "yellow", buttonDisabled: true, chipDisplay: "inline"});
-		}
-		else if (data[0]['status'] === "Success") {
-			setNavBarState({chipColor: "green", buttonDisabled: false, chipDisplay: "none"});
-		}
-
-		});
-        }  
-
-	function update()
-	{
-	        setNavBarState({buttonDisabled: true, updateClicked:true});
-		
-		fetch('/api/get_script_status').then(res => res.json()).then(data => {
-			if (data[0]['status'] !== "Running")
-			{
-				setNavBarState({chipColor: "yellow", buttonDisabled: true, chipDisplay: "inline"});
-				fetch('/api/update_data').then(res => res.json()).then(data => {
-
-				});
-			}
-			else {
-
-			}
-		});
-	}
-	const useStyles = makeStyles((theme) => ({
-		  root: {
-			      flexGrow: 1,
-			    },
-		  menuButton: {
-			      marginRight: theme.spacing(2),
-			    },
-		  title: {
-			      flexGrow: 1,
-			    },
-	}));
-
-	const classes = useStyles();
-
-
-	return (<AppBar position="static">
-		  <Toolbar variant="dense">
-		    <IconButton edge="start" color="inherit" aria-label="menu">
-		      <MenuIcon />
-		    </IconButton>
-		    <Typography variant="h6" className={classes.title} color="inherit">
-		    Hell yeah bröther
-		    </Typography>
-		    <Chip style={{backgroundColor:navBarState.chipColor, display:navBarState.chipDisplay}} label="&nbsp;" />
-		    <Button color="inherit" disabled={navBarState.buttonDisabled} onClick={update}>Update</Button>
-		  </Toolbar>
-		</AppBar>)
-}
 
 function App() {
 
@@ -103,13 +15,13 @@ function App() {
 	});
     }, []);
 
-    const tableData = Array.from(teamData);
+    let tableData = Array.from(teamData);
 
     //function for our component to update the page data when possible.
     const updateTeamData = () => {
 	    fetch('/api/get_team_data').then(res => res.json()).then(data => {
 		    setTeamData(data);
-		    const tableData = Array.from(teamData);
+		    tableData = Array.from(teamData);
 		});
     }
 
@@ -145,7 +57,7 @@ function App() {
         { Header: "Allies", accessor: "allies", width: "10%"},
         { Header: "Enemies", accessor: "enemies", width: "10%"},
         { Header: "Wonned?", accessor: (values) => {
-	    const bool = values.win == "Win" ? 'True' : 'False';
+	    const bool = values.win === "Win" ? 'True' : 'False';
 	    return bool
 	    }, width: "3%"}
     ];
