@@ -9,11 +9,16 @@ import sqlalchemy as db
 from classes.lolparser import LolParser
 from classes.lolaccount import LolAccount
 from sys import argv
+import logging
 
 def main(argv):
     # Create a new parser class
     parser = LolParser()
     parser.store_run_info(argv[1])
+
+    # Not really supposed to start logging this late, but whatever I guess....
+    logging.basicConfig(filename=parser.log_file_name,level=logging.DEBUG)
+    logging.info('\nScript is starting\n')
 
     try:
         # Set a couple things
@@ -26,14 +31,14 @@ def main(argv):
         account_list = [LolAccount(acc_name) for acc_name in LolParser.accounts]
         
         for acc in account_list:
-            print("Updating {}'s matches".format(acc.account_name))
+            logging.info("Updating {}'s matches".format(acc.account_name))
 
             # gets every match for this particular user
             acc.set_user_id()
             acc.get_user_matches()
 
             if not acc.user_matches:
-                print("No matches were found for {}".format(acc.account_name))
+                logging.info("No matches were found for {}".format(acc.account_name))
                 
             # if the match isn't in the big list of data to be stored, add it. Otherwise, don't.
             for match in acc.user_matches:
@@ -44,11 +49,11 @@ def main(argv):
                         try:
                             parser.store_json_data(match, match_json)
                         except Exception as e:
-                            print("Could not store json data, maybe it's already stored?")
-                            print(e)
+                            logging.warning("Could not store json data, maybe it's already stored?")
+                            logging.warning(e)
                             continue
 
-            print("Added {} new matches to {}'s matches".format(len(acc.user_matches), acc.account_name))
+            logging.info("Added {} new matches to {}'s matches".format(len(acc.user_matches), acc.account_name))
 
             acc.update_player_table_stats()
             acc.update_team_data_table()
@@ -58,8 +63,8 @@ def main(argv):
         parser.update_run_info("Failed", parser.match_id_list, str(e))
 
     parser.update_run_info("Success", parser.match_id_list, "No Errors")
+    logging.info("Script run finished \n")
     return
 
 if __name__ == "__main__":
-    print("here we go...")
     main(argv)

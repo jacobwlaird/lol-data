@@ -9,6 +9,7 @@ import sqlalchemy as db
 import time
 from sqlalchemy import orm, and_
 from .lolparser import LolParser
+import logging
 
 class LolAccount(object):
     def __init__(self, name):
@@ -18,6 +19,8 @@ class LolAccount(object):
         self.previous_player_matches = []
 
         self.account_id = '' #This is needed to get our matches later.
+
+        logging.basicConfig(filename=LolParser.log_file_name,level=logging.DEBUG)
 
     #This saves the users previous matches, and new matches to be added.
     def get_user_matches(self):
@@ -38,9 +41,9 @@ class LolAccount(object):
             self.account_id = account_data['accountId']
         except Exception as e:
             if e.response.status_code == 403:
-                print("Api key is probably expired")
+                logging.critical("Api key is probably expired")
 
-            print("set_user_id broke")
+            logging.critical("set_user_id broke")
 
 
     # sets the previous_matches and new_player_matches properties.
@@ -69,7 +72,7 @@ class LolAccount(object):
 
     # Gets all the stats for a single player/match and puts them into the table.
     def update_player_table_stats(self):
-        print("Updating {}'s match data".format(self.account_name))
+        logging.info("Updating {}'s match data".format(self.account_name))
 
         for match in self.user_matches:
             session = orm.scoped_session(LolParser.sm)
@@ -152,7 +155,7 @@ class LolAccount(object):
                     break # gets us outta the loop as soon as we put our data in.
                     
     def update_team_data_table(self):
-       print("Adding {}'s new matches to the team_data table.".format(self.account_name))
+       logging.info("Adding {}'s new matches to the team_data table.".format(self.account_name))
        previous_matches = [] # this needs to changed to be better, but for some reason my match not in exisiting matches condition isn't working.
 
        select_existing_matches = "SELECT match_id FROM team_data;"
@@ -256,7 +259,7 @@ class LolAccount(object):
 
             xppm = float(total_xp / num_of_deltas)
         except Exception as e:
-            print("NO gold per minute or creeps per minute deltas, GTFO")
+            logging.warning("NO gold per minute or creeps per minute deltas, GTFO")
 
         return gpm, cspm, xppm
 

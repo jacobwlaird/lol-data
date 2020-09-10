@@ -8,6 +8,7 @@ from datetime import datetime as date
 import pandas as pd
 import sqlalchemy as db
 from sqlalchemy import orm
+import logging
 
 class LolParser(object):
     base_summoner_url = "https://na1.api.riotgames.com/lol/summoner/v4/"
@@ -45,8 +46,12 @@ class LolParser(object):
     new_match_data = {}
     match_id_list = "" # this is for storing the ids in the script runs table.
 
+    log_file_name = config.get('LOGGING', 'file_name')
+
     def __init__(self):
         self.new_matches = []
+
+        logging.basicConfig(filename=self.log_file_name,level=logging.DEBUG)
 
     @classmethod
     def get_account_info(cls, name, account_id, start_index, end_index):
@@ -56,14 +61,14 @@ class LolParser(object):
             player_matches_response.raise_for_status()
             player_matches = json.loads(player_matches_response.text)
         except Exception as e:
-            print("Get_account_info broke")
+            logging.critical("Get_account_info broke")
             if e.response.status_code == 403:
-                print("Api key is probably expired")
+                logging.critical("Api key is probably expired")
             else:
-                print(e)
+                logging.critical(e)
 
             if e.response.status_code == 429:
-                print("Well that's an unfortunate timeout. I gotchu though fam.")
+                logging.warning("Well that's an unfortunate timeout. I gotchu though fam.")
                 time.sleep(10)
                 return cls.get_account_info(name, account_id, start_index, end_index)
 
@@ -72,7 +77,7 @@ class LolParser(object):
     @classmethod
     def get_match_data(cls, match_id):
         try:
-            print(''.join(["getting match data for ", str(match_id)]))
+            logging.info(''.join(["getting match data for ", str(match_id)]))
 
             # we want string representation of all added games, so we can track in the runs table.
             cls.match_id_list = cls.match_id_list + " " + str(match_id)
@@ -86,8 +91,8 @@ class LolParser(object):
             # Yes, I know we just turned this into json, but we actually need the raw text to store into the db.
             return matches_response.text
         except Exception as e:
-            print(e)
-            print("Get_match_data broke, trying again")
+            logging.critical(e)
+            logging.warning("Get_match_data broke, trying again")
             time.sleep(10)
             cls.get_match_data(match_id)
 
