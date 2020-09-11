@@ -5,9 +5,7 @@ tests/*
 resources/python/classes/__pycache__
 .DS_Store
 todo
-Lol-Data_nginx.conf
-Lol-Data_uwsgi.ini
-Lol-Data_uwsgi.sock
+lol-data_nginx.conf
 /target
 *.sql
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
@@ -33,3 +31,4 @@ Lol-Data_uwsgi.sock
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+utils/db-sync.sh
