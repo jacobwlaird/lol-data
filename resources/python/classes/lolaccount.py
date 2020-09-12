@@ -4,7 +4,6 @@ import pymysql.cursors as cursors
 import requests
 import json
 import time
-import pandas as pd
 import sqlalchemy as db
 import time
 from sqlalchemy import orm, and_
@@ -49,12 +48,15 @@ class LolAccount(object):
     # sets the previous_matches and new_player_matches properties.
     def add_user_match_history(self, start_index=0, end_index=100):
         # This has to only select the current loop users matches.
-        player_matches = LolParser.get_account_info(self.account_name, self.account_id, start_index, end_index)
-        select_previous_matches = "SELECT match_id FROM match_data WHERE player = '{}';".format(self.account_name, self.account_name)
-        player_match_history = pd.read_sql(select_previous_matches, LolParser.connection)
+        player_matches = LolParser.get_account_info(self.account_id, start_index, end_index)
 
-        for match in player_match_history['match_id']:
-            self.previous_player_matches.append(match)
+        select_previous_matches  = db.select([LolParser.match_data_table]).where(\
+            LolParser.match_data_table.c.player == self.account_name)
+
+        player_match_history = LolParser.connection.execute(select_previous_matches).fetchall()
+
+        for match in player_match_history:
+            self.previous_player_matches.append(match.match_id)
 
         if not 'matches' in player_matches.keys():
             return
@@ -75,15 +77,15 @@ class LolAccount(object):
         logging.info("Updating {}'s match data".format(self.account_name))
 
         for match in self.user_matches:
-            session = orm.scoped_session(LolParser.sm)
-            # this also has to filter by player name?
+            session = orm.scoped_session(LolParser.session_maker)
+            # can we make this selects like we do elsewhere?
             row = session.query(LolParser.match_data_table).filter(and_(LolParser.match_data_table.c.match_id==match, 
                 LolParser.match_data_table.c.player==self.account_name)).first()
             session.close()
 
             champion = row.champion
 
-            match_data = LolParser.new_match_data[int(match)]
+            match_data = LolParser.new_match_data[match]
 
             for participant in match_data['participants']:
                 participant_champ = participant['championId']
@@ -158,15 +160,17 @@ class LolAccount(object):
        logging.info("Adding {}'s new matches to the team_data table.".format(self.account_name))
        previous_matches = [] # this needs to changed to be better, but for some reason my match not in exisiting matches condition isn't working.
 
-       select_existing_matches = "SELECT match_id FROM team_data;"
-       existing_match_history = pd.read_sql(select_existing_matches, LolParser.connection)
-       for match in existing_match_history['match_id']:   
-            previous_matches.append(match)
+       select_existing_matches  = db.select([LolParser.team_data_table])
+
+       existing_match_history = LolParser.connection.execute(select_existing_matches).fetchall()
+
+       for match in existing_match_history:   
+            previous_matches.append(match.match_id)
 
        for match in self.user_matches:
             if match not in previous_matches:
                 # get this matches data from the big collection.
-                match_data = LolParser.new_match_data[int(match)]
+                match_data = LolParser.new_match_data[match]
                  
                 team_data, enemy_team_data, team_id, enemy_id = self.get_team_data(match, match_data)
 
@@ -222,7 +226,7 @@ class LolAccount(object):
                 results = LolParser.connection.execute(team_data_table_insert)
             else:
                 # This match was already in the table, but another one of our players was in this game, so we need to add them to participants.
-                session = orm.scoped_session(LolParser.sm)
+                session = orm.scoped_session(LolParser.session_maker)
                 row = session.query(LolParser.team_data_table).filter_by(match_id=match).first()
                 session.close()
 
@@ -333,7 +337,7 @@ class LolAccount(object):
         return start_t, duration
 
     def get_champ_name(self, champ_id):
-        session = orm.scoped_session(LolParser.sm)
+        session = orm.scoped_session(LolParser.session_maker)
         champion_row = session.query(LolParser.champs_table).filter_by(key=champ_id).first()
         session.close()
         return champion_row.name
@@ -369,7 +373,7 @@ class LolAccount(object):
         for item in items:
             if item:
                 # here we need to ping our itmes table and get the actual name of the item
-                session = orm.scoped_session(LolParser.sm)
+                session = orm.scoped_session(LolParser.session_maker)
                 row = session.query(LolParser.items_table).filter_by(key=participant_stats[item]).first()
                 session.close()
 
@@ -401,7 +405,7 @@ class LolAccount(object):
         return champ_perks
 
     def get_team_data(self, match, match_data):
-        session = orm.scoped_session(LolParser.sm)
+        session = orm.scoped_session(LolParser.session_maker)
         row = session.query(LolParser.match_data_table).filter(and_(LolParser.match_data_table.c.match_id==match, 
             LolParser.match_data_table.c.player==self.account_name)).first()
 
