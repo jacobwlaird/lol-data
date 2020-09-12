@@ -3,7 +3,8 @@ config.toml
 aws.cfg
 tests/*
 resources/python/classes/__pycache__
-.DS_Store
+resources/python/scripts/__pycache__
+*.DS_Store
 todo
 lol-data_nginx.conf
 /target
