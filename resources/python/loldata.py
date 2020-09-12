@@ -62,7 +62,7 @@ def main():
             # if the match isn't in the big list of data to be stored, add it. Otherwise, don't.
             for match in acc.user_matches:
                 if match not in LolParser.new_match_data:
-                    match_json = parser.get_match_data(str(match))
+                    match_json = parser.get_match_data(match)
                     # add the match id to the list of matches here?
                     if match_json:
                         try:

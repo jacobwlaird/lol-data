@@ -128,7 +128,7 @@ class LolParser():
         return player_matches
 
     @classmethod
-    def get_match_data(cls, match_id: str) -> str:
+    def get_match_data(cls, match_id: int) -> str:
         """ Gets an individual matches data
 
             Args:
@@ -140,14 +140,14 @@ class LolParser():
 
         """
         try:
-            logging.info(''.join(["getting match data for ", match_id]))
+            logging.info(''.join(["getting match data for ", str(match_id)]))
 
             cls.add_id_to_match_list(match_id)
 
             time.sleep(.06) # this should keep us around the 20 per 1 second limit.
 
             matches_response = requests.get(''.join([cls.base_match_url, cls.match_url,\
-                    match_id, "?api_key=", cls.api_key]))
+                    str(match_id), "?api_key=", cls.api_key]))
 
             matches_response.raise_for_status()
             match_json = json.loads(matches_response.text)
@@ -207,21 +207,21 @@ class LolParser():
         cls.connection.execute(runs_sql_update)
 
     @classmethod
-    def add_id_to_match_list(cls, match_id: str):
+    def add_id_to_match_list(cls, match_id: int):
         """ Adds the passed match_id to lolparser.match_id_list for update_run_info
 
             Args:
                 match_id: the match_id to be added to the string
         """
-        cls.match_id_list = cls.match_id_list + " " + match_id
+        cls.match_id_list = cls.match_id_list + " " + str(match_id)
 
 
     @classmethod
-    def add_match_data_to_new_match_data(cls, match_id: str, match_json: dict):
+    def add_match_data_to_new_match_data(cls, match_id: int, match_json: dict):
         """ Adds the passed json data to lolparser.new_match_data dict with id = match_id
 
             Args:
-                match_id: the match_id to be added to the string
+                match_id: the match_id to be added to the dict
                 match_json: the json data to be added to the class attribute
         """
         cls.new_match_data[match_id] = match_json
