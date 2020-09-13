@@ -11,9 +11,9 @@ champ_data = champ_res['data']
 
 champ_table = db.Table('champions', LolParser.metadata, autoload=True, autoload_with=LolParser.engine)
 
-# insert NONE with id of -1 in case someone didn't ban something.
+# insert NONE with id of 0 in case someone didn't ban something.
 champ_table_insert = db.insert(champ_table).values(
-        key=-1,
+        key=0,
         id='NONE',
         name='NONE',
         title='NONE',

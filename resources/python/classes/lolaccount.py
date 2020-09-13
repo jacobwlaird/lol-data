@@ -311,7 +311,7 @@ class LolAccount():
                 enemy_champions.append(participant['championId'])
 
         if 'NONE' in enemy_participants_roles:
-            return -1
+            return 0
 
         # if enemy_participants_roles has 5 unique values, we're good.
         if 'TOP' in enemy_participants_roles and 'MIDDLE' in enemy_participants_roles \
@@ -321,7 +321,7 @@ class LolAccount():
             #get the index of the role we passed in, and pass that champion back.
             return enemy_champions[enemy_participants_roles.index(role)]
 
-        return -1
+        return 0
 
     @staticmethod
     def get_start_time_and_duration(match):
