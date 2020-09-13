@@ -1,55 +1,38 @@
-import configparser
-import pymysql
-import pymysql.cursors as cursors
-import requests
-import json
-import time
-import sqlalchemy as db
-import time
-from sqlalchemy import orm, and_
-from .lolparser import LolParser
-import logging
+""" lolaccount.py class
 
-class LolAccount(object):
+This class contains all the methods that are used for each individual account object
+to be able to gather and store league of legends data into a database.
+
+"""
+import logging
+import time
+from typing import Tuple, Dict
+import sqlalchemy as db
+from sqlalchemy import and_
+from .lolparser import LolParser
+class LolAccount():
+    """ Contains all the methods and functions needed to store the gathered data into the database
+        Attributes:
+            account_name  (str): the account name for our account
+            game_index    (str): starting game index for matches API
+            new_user_matches  (list: int): list of new matches to be added to the db for this player
+            previous_player_matches (list: int): the list of games we currently have for this player
+            account_id    (str): the account_id of this account from riot
+
+    """
     def __init__(self, name):
         self.account_name = name
         self.game_index = 0
-        self.user_matches = []
+        self.new_user_matches = []
+        self.account_id = LolParser.get_user_id(self.account_name)
         self.previous_player_matches = []
-
-        self.account_id = '' #This is needed to get our matches later.
 
         logging.basicConfig(filename=LolParser.log_file_name,level=logging.DEBUG)
 
-    #This saves the users previous matches, and new matches to be added.
-    def get_user_matches(self):
-        while self.game_index < LolParser.max_game_index:
-            self.add_user_match_history(self.game_index, self.game_index+100)  #these should be 100
-            if not self.user_matches:
-                break
+    def set_previous_player_matches(self):
+        """ Stores the matches we currently have for this account into previous_player_matches
 
-            self.game_index += 100
-
-
-    def set_user_id(self):
-        # this will call the api once, to get our account id, so we dont double call it.
-        try:
-            account_response = requests.get(''.join([LolParser.base_summoner_url, LolParser.account_name_url, self.account_name, "?api_key=", LolParser.api_key]))
-            account_response.raise_for_status()
-            account_data = json.loads(account_response.text)
-            self.account_id = account_data['accountId']
-        except Exception as e:
-            if e.response.status_code == 403:
-                logging.critical("Api key is probably expired")
-
-            logging.critical("set_user_id broke")
-
-
-    # sets the previous_matches and new_player_matches properties.
-    def add_user_match_history(self, start_index=0, end_index=100):
-        # This has to only select the current loop users matches.
-        player_matches = LolParser.get_account_info(self.account_id, start_index, end_index)
-
+        """
         select_previous_matches  = db.select([LolParser.match_data_table]).where(\
             LolParser.match_data_table.c.player == self.account_name)
 
@@ -58,38 +41,54 @@ class LolAccount(object):
         for match in player_match_history:
             self.previous_player_matches.append(match.match_id)
 
-        if not 'matches' in player_matches.keys():
-            return
+    def set_new_user_matches(self):
+        """ Stores the new match_ids we're getting data for into new_user_matches
 
-        for match in player_matches['matches']:
-            if match['gameId'] not in self.previous_player_matches and match['gameId'] > 200000000:
-                if match['queue'] in LolParser.match_types:
-                    match_sql_insert = db.insert(LolParser.match_data_table).values(match_id=match['gameId'], 
-                            player=self.account_name,
-                            champion=match['champion'])
+        """
+        self.set_previous_player_matches()
 
-                    results = LolParser.connection.execute(match_sql_insert)
-                    self.user_matches.append(match['gameId'])
-        return
+        while self.game_index < LolParser.max_game_index:
+
+            time.sleep(.1)
+            player_matches = LolParser.get_new_match_ids(\
+                    self.account_id, self.game_index,self.game_index+100)
+
+            if not player_matches['matches']:
+                break
+
+            for match in player_matches['matches']:
+                if match['gameId'] not in self.previous_player_matches:
+                    if match['queue'] in LolParser.match_types:
+                        match_sql_insert = db.insert(LolParser.match_data_table).values(\
+                                match_id=match['gameId'],\
+                                player=self.account_name,\
+                                champion=match['champion'])
+
+                        LolParser.connection.execute(match_sql_insert)
+                        self.new_user_matches.append(match['gameId'])
+
+            self.game_index += 100
 
     # Gets all the stats for a single player/match and puts them into the table.
     def update_player_table_stats(self):
-        logging.info("Updating {}'s match data".format(self.account_name))
+        """ Goes through new_user_matches and updates match_data table for each match_id
 
-        for match in self.user_matches:
-            session = orm.scoped_session(LolParser.session_maker)
-            # can we make this selects like we do elsewhere?
-            row = session.query(LolParser.match_data_table).filter(and_(LolParser.match_data_table.c.match_id==match, 
-                LolParser.match_data_table.c.player==self.account_name)).first()
-            session.close()
+        """
+        logging.info("Updating %s's match data", self.account_name)
 
-            champion = row.champion
+        for match in self.new_user_matches:
+            select_new_match_row = db.select([LolParser.match_data_table]).where(\
+                    and_(LolParser.match_data_table.c.match_id==match,\
+                    LolParser.match_data_table.c.player==self.account_name))
+
+            new_match_row = LolParser.connection.execute(select_new_match_row).fetchone()
+            champion = new_match_row.champion
 
             match_data = LolParser.new_match_data[match]
 
             for participant in match_data['participants']:
                 participant_champ = participant['championId']
-                
+
                 # if this participant is us, get some stats
                 if participant_champ == champion:
                     kills = participant['stats']['kills']
@@ -101,12 +100,12 @@ class LolAccount(object):
                     vision_wards_bought = participant['stats']['visionWardsBoughtInGame']
                     wards_killed = participant['stats']['wardsKilled']
                     champ_name = self.get_champ_name(champion)
-                    
+
                     if 'firstBloodKill' in participant['stats']:
                         first_blood_kill = participant['stats']['firstBloodKill']
                     else:
                         first_blood_kill = 0
-                        
+
                     if 'firstBloodAssist' in participant['stats']:
                         first_blood_assist = participant['stats']['firstBloodAssist']
                     else:
@@ -115,64 +114,66 @@ class LolAccount(object):
                     timeline = participant['timeline']
 
                     role = self.get_role(timeline)
-                    gold_per_minute, creeps_per_minute, xp_per_minute = self.get_gold_cs_xp_delta(timeline)
+                    gold_per_minute, creeps_per_minute, xp_per_minute = \
+                           LolAccount.get_gold_cs_xp_delta(timeline)
 
                     if role != "NONE":
-                        enemy_champ = self.get_enemy_champ(role, champion, match_data['participants'])
-                        if enemy_champ != None:
+                        enemy_champ = self.get_enemy_champ(role, champion,\
+                                match_data['participants'])
+                        if enemy_champ != -1:
                             enemy_champ_name = self.get_champ_name(enemy_champ)
                         else:
                             enemy_champ_name = None
                     else:
-                        enemy_champ = None 
+                        enemy_champ = None
                         enemy_champ_name = None
-                    
+
                     champ_items = self.get_items(participant['stats'])
                     champ_perks = self.get_perks(participant['stats'])
 
-                    #match_stats_insert = self.user_table.update().values( 
-                    match_stats_insert = LolParser.match_data_table.update().values( 
-                            kills=kills,
-                            deaths=deaths,
-                            assists=assists,
-                            role=role,
-                            wards_placed=wards_placed,
-                            damage_to_champs=damage_to_champs,
-                            damage_to_turrets=damage_to_turrets,
-                            vision_wards_bought=vision_wards_bought,
-                            gold_per_minute=gold_per_minute,
-                            creeps_per_minute=creeps_per_minute,
-                            xp_per_minute=xp_per_minute,
-                            champion_name=champ_name,
-                            enemy_champion=enemy_champ,
-                            enemy_champion_name=enemy_champ_name,
-                            first_blood=first_blood_kill,
-                            first_blood_assist=first_blood_assist,
-                            items=champ_items,
-                            perks=champ_perks,
-                            wards_killed=wards_killed).where(
-                                and_(LolParser.match_data_table.c.match_id == match, LolParser.match_data_table.c.player == self.account_name))
+                    match_stats_insert = LolParser.match_data_table.update().values(
+                            kills=kills,\
+                            deaths=deaths,\
+                            assists=assists,\
+                            role=role,\
+                            wards_placed=wards_placed,\
+                            damage_to_champs=damage_to_champs,\
+                            damage_to_turrets=damage_to_turrets,\
+                            vision_wards_bought=vision_wards_bought,\
+                            gold_per_minute=gold_per_minute,\
+                            creeps_per_minute=creeps_per_minute,\
+                            xp_per_minute=xp_per_minute,\
+                            champion_name=champ_name,\
+                            enemy_champion=enemy_champ,\
+                            enemy_champion_name=enemy_champ_name,\
+                            first_blood=first_blood_kill,\
+                            first_blood_assist=first_blood_assist,\
+                            items=champ_items,\
+                            perks=champ_perks,\
+                            wards_killed=wards_killed).where(\
+                                and_(LolParser.match_data_table.c.match_id == match,\
+                                        LolParser.match_data_table.c.player == self.account_name))
 
-                    results = LolParser.connection.execute(match_stats_insert)
+                    LolParser.connection.execute(match_stats_insert)
                     break # gets us outta the loop as soon as we put our data in.
-                    
+
     def update_team_data_table(self):
-       logging.info("Adding {}'s new matches to the team_data table.".format(self.account_name))
-       previous_matches = [] # this needs to changed to be better, but for some reason my match not in exisiting matches condition isn't working.
+        logging.info("Adding %s's new matches to the team_data table.", self.account_name)
+        previous_matches = []
 
-       select_existing_matches  = db.select([LolParser.team_data_table])
+        select_existing_matches  = db.select([LolParser.team_data_table])
 
-       existing_match_history = LolParser.connection.execute(select_existing_matches).fetchall()
+        existing_match_history = LolParser.connection.execute(select_existing_matches).fetchall()
 
-       for match in existing_match_history:   
+        for match in existing_match_history:
             previous_matches.append(match.match_id)
 
-       for match in self.user_matches:
+        for match in self.new_user_matches:
             if match not in previous_matches:
                 # get this matches data from the big collection.
                 match_data = LolParser.new_match_data[match]
-                 
-                team_data, enemy_team_data, team_id, enemy_id = self.get_team_data(match, match_data)
+
+                team_data, enemy_team_data, team_id = self.get_team_data(match, match_data)
 
                 # get some team information.
                 game_outcome = team_data['win']
@@ -198,9 +199,9 @@ class LolAccount(object):
                 list_of_enemy_bans = self.get_team_bans(enemy_team_data)
 
                 allies, enemies = self.get_allies_and_enemies(team_id, match)
-                start_time, duration = self.get_start_time_and_duration(match) 
+                start_time, duration = self.get_start_time_and_duration(match)
 
-                team_data_table_insert = db.insert(LolParser.team_data_table).values(match_id=match, 
+                team_data_table_insert = db.insert(LolParser.team_data_table).values(match_id=match,
                         participants=self.account_name,
                         win=game_outcome,
                         first_blood=first_blood,
@@ -223,20 +224,25 @@ class LolAccount(object):
                         duration=duration
                         )
 
-                results = LolParser.connection.execute(team_data_table_insert)
+                LolParser.connection.execute(team_data_table_insert)
             else:
-                # This match was already in the table, but another one of our players was in this game, so we need to add them to participants.
-                session = orm.scoped_session(LolParser.session_maker)
-                row = session.query(LolParser.team_data_table).filter_by(match_id=match).first()
-                session.close()
+                # This match was already in the table, but another one of our players
+                # was in this game, so we need to add them to participants.
+                select_existing_team_data_row = db.select([LolParser.team_data_table])\
+                        .where(LolParser.team_data_table.c.match_id==match)
 
-                current_participants = row.participants
-                match_participants_update = LolParser.team_data_table.update().values( 
-                        participants="{}, {}".format(current_participants, self.account_name)).where(LolParser.team_data_table.c.match_id == match)
+                existing_team_data_row = LolParser.connection.execute(\
+                        select_existing_team_data_row).fetchone()
 
-                results = LolParser.connection.execute(match_participants_update)
+                current_participants = existing_team_data_row.participants
+                match_participants_update = LolParser.team_data_table.update().values(\
+                        participants=f"{current_participants}, {self.account_name}")\
+                        .where(LolParser.team_data_table.c.match_id==match)
 
-    def get_gold_cs_xp_delta(self, timeline):
+                LolParser.connection.execute(match_participants_update)
+
+    @staticmethod
+    def get_gold_cs_xp_delta(timeline):
         num_of_deltas = 0
         total_gold = 0
         total_creeps = 0
@@ -244,48 +250,47 @@ class LolAccount(object):
         cspm = 0
         gpm = 0
         xppm = 0
-        
+
         try:
-            for deltas, value in timeline['goldPerMinDeltas'].items():
-                total_gold += value
+            for delta in timeline['goldPerMinDeltas'].items():
+                total_gold += delta[1]
                 num_of_deltas += 1
 
             gpm = float(total_gold / num_of_deltas)
 
-            for deltas, value in timeline['creepsPerMinDeltas'].items():
-                total_creeps += value
+            # what are the values of deltas here?
+            for delta in timeline['creepsPerMinDeltas'].items():
+                total_creeps += delta[1]
 
             cspm = float(total_creeps / num_of_deltas)
 
-            for deltas, value in timeline['xpPerMinDeltas'].items():
-                total_xp += value
-                num_of_deltas += 1
+            for delta in timeline['xpPerMinDeltas'].items():
+                total_xp += delta[1]
 
             xppm = float(total_xp / num_of_deltas)
-        except Exception as e:
+        except ZeroDivisionError:
             logging.warning("NO gold per minute or creeps per minute deltas, GTFO")
 
         return gpm, cspm, xppm
 
-    def get_role(self, timeline): 
+    @staticmethod
+    def get_role(timeline):
         lane = timeline['lane']
         role = timeline['role']
 
-        if lane == 'BOT' or lane == 'BOTTOM':
+        if lane == 'BOTTOM':
             if role == 'DUO_SUPPORT':
                 return 'SUPPORT'
-            elif role == 'DUO_CARRY':
+            if role == 'DUO_CARRY':
                 return  'BOTTOM'
-            else:
-                return  'NONE'
 
-        if role == "SOLO" and (lane != 'TOP' and lane != 'MID' and lane != 'MIDDLE' and lane != 'JUNGLE'):
+            return  'NONE'
+
+        if role == "SOLO" and lane not in ('TOP', 'MIDDLE', 'JUNGLE'):
             return 'NONE'
-        else:
-            return lane
 
-        if role == 'MID':
-            return 'MIDDLE'
+        return lane
+
 
     def get_enemy_champ(self, role, champion, participants):
         enemy_participants_roles = []
@@ -299,47 +304,52 @@ class LolAccount(object):
                 our_team_id = participant['teamId']
                 break
 
-        
         for participant in participants:
             if participant['teamId'] != our_team_id:
                 timeline = participant['timeline']
                 enemy_participants_roles.append(self.get_role(timeline))
                 enemy_champions.append(participant['championId'])
 
-        # if enemy_participants_roles has 5 unique values, we're good.
         if 'NONE' in enemy_participants_roles:
-            return None
+            return -1
 
-        if 'TOP' in enemy_participants_roles and 'MIDDLE' in enemy_participants_roles and 'JUNGLE' in enemy_participants_roles \
-                and 'BOTTOM' in enemy_participants_roles and 'SUPPORT' in enemy_participants_roles:
+        # if enemy_participants_roles has 5 unique values, we're good.
+        if 'TOP' in enemy_participants_roles and 'MIDDLE' in enemy_participants_roles \
+                and 'JUNGLE' in enemy_participants_roles and 'BOTTOM' in enemy_participants_roles\
+                and 'SUPPORT' in enemy_participants_roles:
 
             #get the index of the role we passed in, and pass that champion back.
             return enemy_champions[enemy_participants_roles.index(role)]
-        else:
-            return None
 
-    def get_start_time_and_duration(self, match):
+        return -1
+
+    @staticmethod
+    def get_start_time_and_duration(match):
         match_data = LolParser.new_match_data[int(match)]
-        
+
         start_t = match_data['gameCreation']
 
         # Creation includes miliseconds which we don't care about.
         start_t = start_t / 1000
         start_t = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_t))
-        
+
         # Duration might go over an hour, so I have to use a check for presentability's sake
         duration = match_data['gameDuration']
         if duration > 3600:
             duration = time.strftime("%H:%M:%S", time.gmtime(duration))
         else:
             duration = time.strftime("%M:%S", time.gmtime(duration))
-        
+
         return start_t, duration
 
-    def get_champ_name(self, champ_id):
-        session = orm.scoped_session(LolParser.session_maker)
-        champion_row = session.query(LolParser.champs_table).filter_by(key=champ_id).first()
-        session.close()
+    @staticmethod
+    def get_champ_name(champ_id):
+
+        select_champion_row = db.select([LolParser.champs_table]).where(\
+                LolParser.champs_table.c.key==champ_id)
+
+        champion_row = LolParser.connection.execute(select_champion_row).fetchone()
+
         return champion_row.name
 
     def get_allies_and_enemies(self, team_id, match):
@@ -367,51 +377,65 @@ class LolAccount(object):
         list_of_bans = list_of_bans[:-2] # removes the last two characters
         return list_of_bans
 
-    def get_items(self, participant_stats):
+    @staticmethod
+    def get_items(participant_stats):
         champ_items = ""
         items = ['item0', 'item1', 'item2', 'item3', 'item4', 'item5', 'item6']
         for item in items:
             if item:
-                # here we need to ping our itmes table and get the actual name of the item
-                session = orm.scoped_session(LolParser.session_maker)
-                row = session.query(LolParser.items_table).filter_by(key=participant_stats[item]).first()
-                session.close()
 
-                if row:
-                    champ_items += "{}, ".format(row.name)
+                select_items_row = db.select([LolParser.items_table]).where(\
+                        LolParser.items_table.c.key==participant_stats[item])
+
+                items_row = LolParser.connection.execute(select_items_row).fetchone()
+                if items_row:
+                    champ_items += "{}, ".format(items_row.name)
                 else:
-                    champ_items += "NOT FOUND, "
+                    champ_items += "NOT FOUND, " # I may eventually only return slots with items
 
         champ_items = champ_items[:-2]
         return champ_items
 
-    # getting the perk name from the db is on hold until I can figure out how to populate the db.
-    def get_perks(self, participant_stats):
+    @staticmethod
+    def get_perks(participant_stats: Dict) -> list:
+        """ This function gets the perk name from the perks table Note: This isn't implemented yet
+
+            Args:
+                participant_stats: A dict from riot games containing stats info
+
+            Returns:
+                A list of perk names from the database
+        """
         champ_perks = ""
         perks = ['perk0', 'perk1', 'perk2', 'perk3', 'perk4', 'perk5']
         for perk in perks:
             if perk:
-               #session = orm.scoped_session(LolParser.sm)
-                #row = session.query(LolParser.items_table).filter_by(key=item).first()
-                #session.close()
-                champ_perks += "{}, ".format(participant_stats[perk])
-
-                #if row:
-                #    champ_perks = "{}, ".format(row.name)
-                #else:
-                #    champ_items += "NOT FOUND, "
+                champ_perks += f"{participant_stats[perk]}, "
 
         champ_perks = champ_perks[:-2]
         return champ_perks
 
-    def get_team_data(self, match, match_data):
-        session = orm.scoped_session(LolParser.session_maker)
-        row = session.query(LolParser.match_data_table).filter(and_(LolParser.match_data_table.c.match_id==match, 
-            LolParser.match_data_table.c.player==self.account_name)).first()
+    def get_team_data(self, match: int, match_data: Dict) -> Tuple[Dict, Dict, int]:
+        """ Returns Team data for both teams, as well as the team_id for both teams
 
-        session.close()
+            Args:
+                match: the match_id we use to query the db with
+                match_data: A dict containing lots of data about our match
 
-        champion = row.champion
+            Returns:
+                team_data: our teams data from this match
+                enemy_team-data: enemy teams data from this match
+                team_id: our teams team_id
+        """
+
+        select_match_data_row = db.select([LolParser.match_data_table]).where(\
+                and_(LolParser.match_data_table.c.match_id==match,\
+            LolParser.match_data_table.c.player==self.account_name))
+
+        match_data_row = LolParser.connection.execute(select_match_data_row).fetchone()
+
+        champion = match_data_row.champion
+
         for participant in match_data['participants']:
             participant_champ = participant['championId']
             if participant_champ == champion:
@@ -419,12 +443,12 @@ class LolAccount(object):
                 if team_id == 100:
                     team_data = match_data['teams'][0]
                     enemy_team_data = match_data['teams'][1]
-                    enemy_team_id = 200
-                    break
+                    #enemy_team_id = 200
                 elif team_id == 200:
                     team_data = match_data['teams'][1]
                     enemy_team_data = match_data['teams'][0]
-                    enemy_team_id = 100
-                    break
+                    #enemy_team_id = 100
 
-        return team_data, enemy_team_data, team_id, enemy_team_id
+                break
+
+        return team_data, enemy_team_data, team_id

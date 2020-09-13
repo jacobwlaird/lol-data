@@ -53,14 +53,13 @@ def main():
             logging.info("Updating %s's matches", acc.account_name)
 
             # gets every match for this particular user
-            acc.set_user_id()
-            acc.get_user_matches()
+            acc.set_new_user_matches()
 
-            if not acc.user_matches:
+            if not acc.new_user_matches:
                 logging.info("No matches were found for %s", acc.account_name)
 
             # if the match isn't in the big list of data to be stored, add it. Otherwise, don't.
-            for match in acc.user_matches:
+            for match in acc.new_user_matches:
                 if match not in LolParser.new_match_data:
                     match_json = parser.get_match_data(match)
                     # add the match id to the list of matches here?
@@ -72,7 +71,7 @@ def main():
                             logging.warning(e)
                             continue
 
-            logging.info("Added %s new matches to %s's matches", len(acc.user_matches),\
+            logging.info("Added %s new matches to %s's matches", len(acc.new_user_matches),\
                     acc.account_name)
 
             acc.update_player_table_stats()

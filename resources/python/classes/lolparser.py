@@ -7,11 +7,11 @@ to be able to gather and store league of legends data into a database.
 import logging
 import json
 import time
+from typing import Dict
 from datetime import datetime as date
 import configparser
 import requests
 import sqlalchemy as db
-from sqlalchemy import orm
 
 class LolParser():
     """ Contains all the methods and functions needed by loldata.py and lolaccount.py
@@ -32,7 +32,6 @@ class LolParser():
             engine        (obj): Sqlalchemy engine object created with config file contents
             connection    (obj): Sqlalchemy connection object created from the sqla engine
             metadata      (obj): Database metadata object
-            session_maker (obj): Sqlalchemy orm session maker object
 
             champs_table     (obj): Sqlalchemy Table object for the champions table
             match_data_table (obj): Sqlalchemy Table object for the match_data table
@@ -64,13 +63,10 @@ class LolParser():
     db_pw = config.get('DATABASE', 'db_password')
     db_name = config.get('DATABASE', 'db_name')
 
-    # db stuff.
     engine = db.create_engine('mysql+pymysql://{}:{}@{}/{}?charset=utf8'.format(db_user,\
             db_pw, db_host, db_name), pool_size=100, max_overflow=100)
     connection = engine.connect()
     metadata = db.MetaData()
-    session_maker = orm.sessionmaker(bind=engine, autoflush=True, autocommit=False,\
-            expire_on_commit=True)
 
     champs_table = db.Table('champions', metadata, autoload=True, autoload_with=engine)
     match_data_table = db.Table('match_data', metadata, autoload=True, autoload_with=engine)
@@ -92,7 +88,7 @@ class LolParser():
         logging.basicConfig(filename=self.log_file_name, level=logging.DEBUG)
 
     @classmethod
-    def get_account_info(cls, account_id: str, start_index: int, end_index: int) -> dict:
+    def get_new_match_ids(cls, account_id: str, start_index: int, end_index: int) -> Dict:
         """ Gets an individual account's recently played match ids
 
             Args:
@@ -120,7 +116,7 @@ class LolParser():
             elif e.response.status_code == 429:
                 logging.warning("Well that's an unfortunate timeout. I gotchu though fam.")
                 time.sleep(10)
-                return cls.get_account_info(account_id, start_index, end_index)
+                return cls.get_new_match_ids(account_id, start_index, end_index)
             else:
                 logging.critical(e)
 
@@ -144,7 +140,7 @@ class LolParser():
 
             cls.add_id_to_match_list(match_id)
 
-            time.sleep(.06) # this should keep us around the 20 per 1 second limit.
+            time.sleep(.08) # this should keep us around the 20 per 1 second limit.
 
             matches_response = requests.get(''.join([cls.base_match_url, cls.match_url,\
                     str(match_id), "?api_key=", cls.api_key]))
@@ -217,7 +213,7 @@ class LolParser():
 
 
     @classmethod
-    def add_match_data_to_new_match_data(cls, match_id: int, match_json: dict):
+    def add_match_data_to_new_match_data(cls, match_id: int, match_json: Dict):
         """ Adds the passed json data to lolparser.new_match_data dict with id = match_id
 
             Args:
@@ -225,3 +221,25 @@ class LolParser():
                 match_json: the json data to be added to the class attribute
         """
         cls.new_match_data[match_id] = match_json
+
+    @classmethod
+    def get_user_id(cls, account_name: str) -> str:
+        """ Hits the riot API and gets our account_id based on account_name
+
+            Args:
+                account_name: the account name we're getting the account_id for
+
+            Returns:
+                The account_id associated with this account from riot
+        """
+        try:
+            account_response = requests.get(''.join([cls.base_summoner_url,\
+                    cls.account_name_url, account_name, "?api_key=", cls.api_key]))
+            account_response.raise_for_status()
+            account_data = json.loads(account_response.text)
+            return account_data['accountId']
+        except requests.exceptions.RequestException as e:
+            if e.response.status_code == 403:
+                logging.critical("Api key is probably expired")
+
+            logging.critical("get_user_id broke")
