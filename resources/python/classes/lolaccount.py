@@ -4,7 +4,6 @@ This class contains all the methods that are used for each individual account ob
 to be able to gather and store league of legends data into a database.
 
 """
-import logging
 import time
 from typing import Tuple, Dict
 import sqlalchemy as db
@@ -12,22 +11,23 @@ from sqlalchemy import and_
 from .lolparser import LolParser
 class LolAccount():
     """ Contains all the methods and functions needed to store the gathered data into the database
+
         Attributes:
             account_name  (str): the account name for our account
             game_index    (str): starting game index for matches API
             new_user_matches  (list: int): list of new matches to be added to the db for this player
             previous_player_matches (list: int): the list of games we currently have for this player
             account_id    (str): the account_id of this account from riot
+            _match_types (list: int): Holds a list of all game modes we collect data for
 
     """
+    _match_types = [400, 410, 420, 440, 700] # make sure this includes new types of matchmade games.
     def __init__(self, name):
         self.account_name = name
-        self.game_index = 0
         self.new_user_matches = []
-        self.account_id = LolParser.get_user_id(self.account_name)
-        self.previous_player_matches = []
-
-        logging.basicConfig(filename=LolParser.log_file_name,level=logging.DEBUG)
+        self._game_index = 0
+        self._account_id = LolParser.get_user_id(self.account_name)
+        self._previous_player_matches = []
 
     def set_previous_player_matches(self):
         """ Stores the matches we currently have for this account into previous_player_matches
@@ -39,7 +39,7 @@ class LolAccount():
         player_match_history = LolParser.connection.execute(select_previous_matches).fetchall()
 
         for match in player_match_history:
-            self.previous_player_matches.append(match.match_id)
+            self._previous_player_matches.append(match.match_id)
 
     def set_new_user_matches(self):
         """ Stores the new match_ids we're getting data for into new_user_matches
@@ -47,18 +47,18 @@ class LolAccount():
         """
         self.set_previous_player_matches()
 
-        while self.game_index < LolParser.max_game_index:
+        while self._game_index < LolParser.max_game_index:
 
             time.sleep(.1)
             player_matches = LolParser.get_new_match_ids(\
-                    self.account_id, self.game_index,self.game_index+100)
+                    self._account_id, self._game_index,self._game_index+100)
 
             if not player_matches['matches']:
                 break
 
             for match in player_matches['matches']:
-                if match['gameId'] not in self.previous_player_matches:
-                    if match['queue'] in LolParser.match_types:
+                if match['gameId'] not in self._previous_player_matches:
+                    if match['queue'] in self._match_types:
                         match_sql_insert = db.insert(LolParser.match_data_table).values(\
                                 match_id=match['gameId'],\
                                 player=self.account_name,\
@@ -67,14 +67,14 @@ class LolAccount():
                         LolParser.connection.execute(match_sql_insert)
                         self.new_user_matches.append(match['gameId'])
 
-            self.game_index += 100
+            self._game_index += 100
 
     # Gets all the stats for a single player/match and puts them into the table.
     def update_player_table_stats(self):
         """ Goes through new_user_matches and updates match_data table for each match_id
 
         """
-        logging.info("Updating %s's match data", self.account_name)
+        LolParser.logger.info("Updating %s's match data", self.account_name)
 
         for match in self.new_user_matches:
             select_new_match_row = db.select([LolParser.match_data_table]).where(\
@@ -158,7 +158,7 @@ class LolAccount():
                     break # gets us outta the loop as soon as we put our data in.
 
     def update_team_data_table(self):
-        logging.info("Adding %s's new matches to the team_data table.", self.account_name)
+        LolParser.logger.info("Adding %s's new matches to the team_data table.", self.account_name)
         previous_matches = []
 
         select_existing_matches  = db.select([LolParser.team_data_table])
@@ -269,7 +269,7 @@ class LolAccount():
 
             xppm = float(total_xp / num_of_deltas)
         except ZeroDivisionError:
-            logging.warning("NO gold per minute or creeps per minute deltas, GTFO")
+            LolParser.logger.warning("NO gold per minute or creeps per minute deltas, GTFO")
 
         return gpm, cspm, xppm
 

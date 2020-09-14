@@ -1,7 +1,8 @@
 """ lolparser.py class
 
 This class contains all the methods needed by the main script and by the lolaccount class
-to be able to gather and store league of legends data into a database.
+to be able to gather and store league of legends data into a database. It handles all API calls
+and all logging during the script run.
 
 """
 import logging
@@ -16,13 +17,13 @@ import sqlalchemy as db
 class LolParser():
     """ Contains all the methods and functions needed by loldata.py and lolaccount.py
         Attributes:
-            base_summoner_url (str): riot games api base endpoint for summoner
-            base_match_url    (str): riot games api base endpoint for match
-            account_name_url  (str): riot games api account name endpoint
-            matches_url       (str): riot games api matches endpoint
-            match_url         (str): riot games api individual match endpoint
+            _base_summoner_url (str): riot games api base endpoint for summoner
+            _base_match_url    (str): riot games api base endpoint for match
+            _account_name_url  (str): riot games api account name endpoint
+            _matches_url       (str): riot games api matches endpoint
+            _match_url         (str): riot games api individual match endpoint
 
-            config         (obj): ConfigParser object for reading config file
+            _config         (obj): ConfigParser object for reading config file
             max_game_index (int): value denoting the max index of games we pull data for
             db_host        (str): database host address from config file
             db_user        (str): database user from config file
@@ -41,27 +42,27 @@ class LolParser():
             runs_table       (obj): Sqlalchemy Table object for the script_runs table
 
             accounts    (list: str): Holds a list of all accounts we collect data for
-            match_types (list: int): Holds a list of all game modes we collect data for
             api_key     (str): Our riot games API key pulled from config file
 
             match_id_list (list: str): Holds a list of games added this script run for logging
+            
             log_file_name (str): Log file name pulled from config file
-
+            logger        (obj): Log object that we call to, to log
     """
-    base_summoner_url = "https://na1.api.riotgames.com/lol/summoner/v4/"
-    base_match_url = "https://na1.api.riotgames.com/lol/match/v4/"
-    account_name_url = "summoners/by-name/"
-    matches_url = "matchlists/by-account/"
-    match_url = "matches/"
+    _base_summoner_url = "https://na1.api.riotgames.com/lol/summoner/v4/"
+    _base_match_url = "https://na1.api.riotgames.com/lol/match/v4/"
+    _account_name_url = "summoners/by-name/"
+    _matches_url = "matchlists/by-account/"
+    _match_url = "matches/"
 
-    config = configparser.ConfigParser()
-    config.read('./resources/python/general.cfg')
+    _config = configparser.ConfigParser()
+    _config.read('./resources/python/general.cfg')
     max_game_index = 7000
 
-    db_host = config.get('DATABASE', 'db_id')
-    db_user = config.get('DATABASE', 'db_user')
-    db_pw = config.get('DATABASE', 'db_password')
-    db_name = config.get('DATABASE', 'db_name')
+    db_host = _config.get('DATABASE', 'db_id')
+    db_user = _config.get('DATABASE', 'db_user')
+    db_pw = _config.get('DATABASE', 'db_password')
+    db_name = _config.get('DATABASE', 'db_name')
 
     engine = db.create_engine('mysql+pymysql://{}:{}@{}/{}?charset=utf8'.format(db_user,\
             db_pw, db_host, db_name), pool_size=100, max_overflow=100)
@@ -76,16 +77,14 @@ class LolParser():
     runs_table = db.Table('script_runs', metadata, autoload=True, autoload_with=engine)
 
     accounts = ['spaynkee', 'dumat', 'archemlis', 'stylus_crude', 'dantheninja6156', 'csqward']
-    match_types = [400, 410, 420, 440, 700] # make sure this includes new types of matchmade games.
 
-    api_key = config.get('RIOT', 'api_key')
+    api_key = _config.get('RIOT', 'api_key')
     new_match_data = {}
     match_id_list = "" # this is for storing the ids in the script runs table.
 
-    log_file_name = config.get('LOGGING', 'file_name')
-
-    def __init__(self):
-        logging.basicConfig(filename=self.log_file_name, level=logging.DEBUG)
+    log_file_name = _config.get('LOGGING', 'file_name')
+    logging.basicConfig(filename=log_file_name, level=logging.DEBUG)
+    logger = logging.getLogger()
 
     @classmethod
     def get_new_match_ids(cls, account_id: str, start_index: int, end_index: int) -> Dict:
@@ -103,22 +102,22 @@ class LolParser():
         try:
             player_matches = {}
 
-            player_matches_response = requests.get(''.join([cls.base_match_url, cls.matches_url,\
+            player_matches_response = requests.get(''.join([cls._base_match_url, cls._matches_url,\
                     account_id, "?beginIndex=", str(start_index), "&endIndex=", str(end_index),\
                     "&api_key=", cls.api_key]))
 
             player_matches_response.raise_for_status()
             player_matches = json.loads(player_matches_response.text)
         except requests.exceptions.RequestException as e:
-            logging.critical("Get_account_info broke")
+            cls.logger.critical("Get_account_info broke")
             if e.response.status_code == 403:
-                logging.critical("Api key is probably expired")
+                cls.logger.critical("Api key is probably expired")
             elif e.response.status_code == 429:
-                logging.warning("Well that's an unfortunate timeout. I gotchu though fam.")
+                cls.logger.warning("Well that's an unfortunate timeout. I gotchu though fam.")
                 time.sleep(10)
                 return cls.get_new_match_ids(account_id, start_index, end_index)
             else:
-                logging.critical(e)
+                cls.logger.critical(e)
 
 
         return player_matches
@@ -136,13 +135,13 @@ class LolParser():
 
         """
         try:
-            logging.info(''.join(["getting match data for ", str(match_id)]))
+            cls.logger.info(''.join(["getting match data for ", str(match_id)]))
 
             cls.add_id_to_match_list(match_id)
 
             time.sleep(.08) # this should keep us around the 20 per 1 second limit.
 
-            matches_response = requests.get(''.join([cls.base_match_url, cls.match_url,\
+            matches_response = requests.get(''.join([cls._base_match_url, cls._match_url,\
                     str(match_id), "?api_key=", cls.api_key]))
 
             matches_response.raise_for_status()
@@ -153,8 +152,8 @@ class LolParser():
             return matches_response.text
 
         except requests.exceptions.RequestException as e:
-            logging.critical(e)
-            logging.warning("Get_match_data broke, trying again")
+            cls.logger.critical(e)
+            cls.logger.warning("Get_match_data broke, trying again")
             time.sleep(10)
             cls.get_match_data(match_id)
 
@@ -233,13 +232,13 @@ class LolParser():
                 The account_id associated with this account from riot
         """
         try:
-            account_response = requests.get(''.join([cls.base_summoner_url,\
-                    cls.account_name_url, account_name, "?api_key=", cls.api_key]))
+            account_response = requests.get(''.join([cls._base_summoner_url,\
+                    cls._account_name_url, account_name, "?api_key=", cls.api_key]))
             account_response.raise_for_status()
             account_data = json.loads(account_response.text)
             return account_data['accountId']
         except requests.exceptions.RequestException as e:
             if e.response.status_code == 403:
-                logging.critical("Api key is probably expired")
+                cls.logger.critical("Api key is probably expired")
 
-            logging.critical("get_user_id broke")
+            cls.logger.critical("get_user_id broke")
