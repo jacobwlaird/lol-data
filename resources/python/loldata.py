@@ -3,7 +3,7 @@
 This script is the main script for the collection of data as part of
 the loldat project. It creates an instance of the LolParser class
 and creates instances of the LolAccount class for each of the accounts
-we're collecting data from. It also calls to LolParser to log info to our log 
+we're collecting data from. It also calls to LolParser to log info to our log
 file, and updates our script_runs table when the script begins running,
 and when it finishes or fails.
 
@@ -12,14 +12,14 @@ Example:
 
 """
 from sys import argv
-from sqlalchemy import exc
+from sqlalchemy import exc # type: ignore
 from classes.lolparser import LolParser
 from classes.lolaccount import LolAccount
 
 def main():
     """
 
-    Creates a LolAccount class for each account we're tracking. 
+    Creates a LolAccount class for each account we're tracking.
     Passes data to and from the LolParser as needed to get
     data stored into our database for each account.
 
@@ -55,12 +55,12 @@ def main():
                         try:
                             LolParser.store_json_data(str(match), match_json)
                         except exc.IntegrityError as e:
-                            LolParser.logger.warning("Could not store json data, maybe it's already stored?")
+                            LolParser.logger.warning("Could not store JSON. Maybe already stored?")
                             LolParser.logger.warning(e)
                             continue
 
-            LolParser.logger.info("Added %s new matches to %s's matches", len(acc.new_user_matches),\
-                    acc.account_name)
+            LolParser.logger.info("Added %s new matches to %s's matches",\
+                    len(acc.new_user_matches), acc.account_name)
 
             acc.update_player_table_stats()
             acc.update_team_data_table()
@@ -68,7 +68,7 @@ def main():
     # this line triggers the linter, but I think it has to stay to.
     except Exception as e:
         # if the run fails, update the table.
-        LolParser.update_run_info("Failed", LolParser.match_id_list, str(e))
+        LolParser.update_run_info("Failed", LolParser.match_id_list, f"Except: {type(e)} {str(e)}")
 
     LolParser.update_run_info("Success", LolParser.match_id_list, "No Errors")
     LolParser.logger.info("Script run finished \n")

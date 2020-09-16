@@ -12,7 +12,7 @@ from typing import Dict
 from datetime import datetime as date
 import configparser
 import requests
-import sqlalchemy as db
+import sqlalchemy as db # type: ignore
 
 class LolParser():
     """ Contains all the methods and functions needed by loldata.py and lolaccount.py
@@ -45,7 +45,7 @@ class LolParser():
             api_key     (str): Our riot games API key pulled from config file
 
             match_id_list (list: str): Holds a list of games added this script run for logging
-            
+
             log_file_name (str): Log file name pulled from config file
             logger        (obj): Log object that we call to, to log
     """
@@ -79,7 +79,7 @@ class LolParser():
     accounts = ['spaynkee', 'dumat', 'archemlis', 'stylus_crude', 'dantheninja6156', 'csqward']
 
     api_key = _config.get('RIOT', 'api_key')
-    new_match_data = {}
+    new_match_data: Dict[int, Dict] = {}
     match_id_list = "" # this is for storing the ids in the script runs table.
 
     log_file_name = _config.get('LOGGING', 'file_name')
@@ -156,6 +156,8 @@ class LolParser():
             cls.logger.warning("Get_match_data broke, trying again")
             time.sleep(10)
             cls.get_match_data(match_id)
+
+        return ""
 
     @classmethod
     def store_json_data(cls, match: str, json_formatted_string: str):
@@ -242,3 +244,5 @@ class LolParser():
                 cls.logger.critical("Api key is probably expired")
 
             cls.logger.critical("get_user_id broke")
+
+        return ""
