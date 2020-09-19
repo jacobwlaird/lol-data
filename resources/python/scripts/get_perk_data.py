@@ -12,6 +12,7 @@
     Next time you read me, get this fixed, thanks.
 
 """
+#pylint: disable=duplicate-code
 import json
 import requests
 import sqlalchemy as db # type: ignore

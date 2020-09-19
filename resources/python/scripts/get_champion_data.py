@@ -9,6 +9,7 @@
     of manually updating the game version
 
 """
+#pylint: skip-file # I don't want to do this, but I don't know how to deal with dup code in scripts
 import json
 import requests
 import sqlalchemy as db

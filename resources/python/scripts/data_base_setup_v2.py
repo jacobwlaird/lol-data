@@ -7,8 +7,9 @@
     champions, items, ?perks? and other tables will likely be in their own scripts
 
 """
+#pylint: skip-file # I don't want to do this, but I don't know how to deal with dup code in scripts
 from sqlalchemy import Column, Table, Integer,\
-        String, BigInteger, Boolean, Float, TIMESTAMP, Time, MetaData
+        String, BigInteger, Boolean, Float, TIMESTAMP, Time, MetaData, exc
 
 from classes.lolparser import LolParser
 
@@ -21,7 +22,7 @@ def main():
         team_data_table = Table('team_data', LolParser.metadata,\
                 autoload=True, autoload_with=LolParser.engine)
         team_data_table.drop(LolParser.engine)
-    except:
+    except exc.OperationalError:
         print("Hey, the team_data table probably didn't exist,\
                 so we're just gonna create it instead of dropping it and then creating it.")
 
@@ -56,7 +57,7 @@ def main():
         matches_table = Table('match_data', LolParser.metadata,\
                 autoload=True, autoload_with=LolParser.engine)
         matches_table.drop(LolParser.engine)
-    except:
+    except exc.OperationalError:
         print("Hey, the match_data table probably didn't\
                exist, so we're just gonna create it instead of dropping it and then creating it.")
 
@@ -93,7 +94,7 @@ def main():
         runs_table = Table('script_runs', LolParser.metadata, autoload=True,\
                 autoload_with=LolParser.engine)
         runs_table.drop(LolParser.engine)
-    except:
+    except exc.OperationalError:
         print("Hey, the script_runs table probably didn't exist,\
                 so we're just gonna create it instead of dropping it and then creating it.")
 

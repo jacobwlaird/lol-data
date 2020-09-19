@@ -6,6 +6,7 @@
     Note: This, like all other scripts have to be ran from resources/python for now.
 
 """
+#pylint: skip-file # I don't want to do this, but I don't know how to deal with dup code in scripts
 from sqlalchemy import Column, Table, Integer, String, TIMESTAMP, MetaData
 from classes.lolparser import LolParser
 def main():

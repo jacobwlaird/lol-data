@@ -26,6 +26,8 @@ def main():
             To be stored in the script runs table.
 
     """
+
+    #pylint: disable=broad-except # this is by design, as I want every exception to be caught here.
     if len(argv) != 2:
         return
 

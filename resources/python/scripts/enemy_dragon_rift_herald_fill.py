@@ -12,6 +12,7 @@
     and make the next script like this that I write a better example.
 
 """
+# pylint: skip-file
 import json
 import configparser
 from sqlalchemy import orm

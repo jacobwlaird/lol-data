@@ -6,7 +6,7 @@
     Note: This, like all other scripts have to be ran from resources/python for now.
 
 """
-from sqlalchemy import Column, Table, BigInteger, MetaData, Text
+from sqlalchemy import Column, Table, BigInteger, MetaData, Text, exc
 from classes.lolparser import LolParser
 
 def main():
@@ -18,7 +18,7 @@ def main():
         json_table = Table('json_data', LolParser.metadata,\
                 autoload=True, autoload_with=LolParser.engine)
         json_table.drop(LolParser.engine)
-    except:
+    except exc.OperationalError:
         print("Json table didn't exist, probably, so we'll just create it now")
 
 
@@ -30,7 +30,7 @@ def main():
                 Column('json_data', Text))
 
         json_table.create(LolParser.engine)
-    except Exception as e:
+    except exc.OperationalError as e:
         print(e)
         print("Create json_data failed, better figure out why.")
 

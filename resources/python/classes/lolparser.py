@@ -38,6 +38,7 @@ class LolParser():
             log_file_name (str): Log file name pulled from config file
             logger        (obj): Log object that we call to, to log
     """
+    #pylint: disable=no-value-for-parameter # this is a false positive?
     _config = configparser.ConfigParser()
     _config.read('./resources/python/general.cfg')
 
