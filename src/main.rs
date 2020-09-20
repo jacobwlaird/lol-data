@@ -43,6 +43,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/api/get_user_data").to(user_data))
             .service(web::resource("/api/update_data").to(update))
             .service(web::resource("/api/get_script_status").to(script_status))
+            .service(Files::new("/dashboard", "./build").index_file("index.html"))
             .service(Files::new("/", "./build").index_file("index.html"))
     })
     .bind("127.0.0.1:5000")?
