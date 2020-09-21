@@ -11,6 +11,7 @@ function App() {
 
     return (<Router>
 		<Route exact path="/" component={TeamDashboard} />
+		<Route exact path="/dashboard/:playerId" component={Dashboard} />
 		<Route exact path="/dashboard" component={Dashboard} />
 	    </Router>);
 }

@@ -42,7 +42,8 @@ pub fn get_user_data(req: HttpRequest) -> std::string::String {
                 vision_wards_bought: Option<String>,
                 wards_killed: Option<String>,
                 items: Option<String>,
-                perks: Option<String>
+                perks: Option<String>,
+                win: Option<String>
         }
 
         let mut settings = Config::default();
@@ -65,7 +66,7 @@ pub fn get_user_data(req: HttpRequest) -> std::string::String {
         let mut conn = pool.get_conn().unwrap();
 
         let user_match_data: Vec<UserData> =
-        conn.query_iter(format!("SELECT * FROM match_data WHERE player = {:?} ORDER BY match_id DESC;", params.name.unwrap()))
+        conn.query_iter(format!("SELECT match_data.*, team_data.win FROM match_data INNER JOIN team_data ON (match_data.match_id=team_data.match_id) where player = {:?} order by match_id DESC", params.name.unwrap()))
     .map(|result| {
         result.map(|x| x.unwrap()).map(|mut row| {
 
@@ -91,7 +92,8 @@ pub fn get_user_data(req: HttpRequest) -> std::string::String {
             vision_wards_bought: row.take("vision_wards_bought").unwrap(),
             wards_killed: row.take("wards_killed").unwrap(),
             items: row.take("items").unwrap(),
-            perks: row.take("perks").unwrap()
+            perks: row.take("perks").unwrap(),
+            win: row.take("win").unwrap()
         }
         }).collect()}).unwrap();
 
