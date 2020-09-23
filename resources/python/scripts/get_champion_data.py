@@ -13,14 +13,14 @@
 import json
 import requests
 import sqlalchemy as db
-from classes.lolparser import LolParser
+from .classes.lolparser import LolParser
 
 def main():
     """ main function of get_champion_data
 
     """
 
-    url = "http://ddragon.leagueoflegends.com/cdn/10.16.1/data/en_US/champion.json"
+    url = "http://ddragon.leagueoflegends.com/cdn/10.19.1/data/en_US/champion.json"
     res = requests.get(url)
     champ_res = json.loads(res.text)
     champ_data = champ_res['data']

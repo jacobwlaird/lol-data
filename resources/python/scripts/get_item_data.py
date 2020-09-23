@@ -19,7 +19,7 @@ def main():
     """ main function of get_item_data
 
     """
-    url = "http://ddragon.leagueoflegends.com/cdn/10.16.1/data/en_US/item.json"
+    url = "http://ddragon.leagueoflegends.com/cdn/10.19.1/data/en_US/item.json"
     res = requests.get(url)
     item_res = json.loads(res.text)
     item_data = item_res['data']
