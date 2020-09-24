@@ -15,6 +15,9 @@ const Dashboard = (props) => {
 	    api_request = "/api/get_user_data?name=spaynkee";
     }
 
+    //Somewhere in here, we need to do something if the name isn't known to us. We probably have
+    //to add a users table and get everyone in there? for now we can hardcode the names I think.
+
     useEffect(() => {
 	    let api_request = "";
 	    if (props.match.params.playerId !== undefined)
