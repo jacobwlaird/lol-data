@@ -1,9 +1,12 @@
 import React, { useState, useEffect} from 'react';
+import "./NavBar.css";
 import AppBar from '@material-ui/core/AppBar';
 import IconButton from '@material-ui/core/IconButton';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import MenuIcon from '@material-ui/icons/Menu';
+import MenuButton from '@material-ui/icons/Menu';
+import MenuItem from '@material-ui/icons/Menu';
 import Button from '@material-ui/core/Button';
 import Chip from '@material-ui/core/Chip';
 import { makeStyles } from '@material-ui/core/styles';
@@ -86,11 +89,15 @@ const NavBar = ({props, updateState}) => {
 		    <IconButton edge="start" color="inherit" aria-label="menu">
 		      <MenuIcon />
 		    </IconButton>
-		    <Typography variant="h6" className={classes.title} color="inherit">
-		    Hell yeah bröther
-		    </Typography>
+		    <a className="nostyle" href="/">
+			    <Typography variant="h6" className={classes.title} color="inherit">
+				    Hell yeah bröther
+			    </Typography>
+		    </a>
+		    <div>
 		    <Chip style={{backgroundColor:navBarState.chipColor, display:navBarState.chipDisplay}} label="&nbsp;" />
 		    <Button color="inherit" disabled={navBarState.buttonDisabled} onClick={update}>Update</Button>
+		  </div>
 		  </Toolbar>
 		</AppBar>)
 }

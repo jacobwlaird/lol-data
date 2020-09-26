@@ -4,6 +4,7 @@ import MyTable from './MyTable';
 import NavBar from './NavBar';
 import Dashboard from './Dashboard';
 import "bootstrap/dist/css/bootstrap.min.css"
+import ReactHtmlParser from 'react-html-parser';
 
 const TeamDashboard = () => {
 
@@ -44,7 +45,14 @@ const TeamDashboard = () => {
 	    }
 	    return vers
 	}, width: "4%"},
-        { Header: "Participants", accessor: "participants", width: "10%"},
+        { Header: "Participants", accessor: "participants", Cell: ({ cell }) => {
+		let { value } = cell;
+		let particips = value.replace(" ", "");
+		particips = particips.split(",");
+		let newstring = "";	
+		particips.forEach(person => newstring+= "<a className='nostyle' href='/"+person+"'>"+person+"</a>" + " ");
+		return <div>{ ReactHtmlParser(newstring) }</div>;
+	}, width: "10%"},
         { Header: "First Blood", accessor: "first_blood", width: "3%"},
         { Header: "First Dragon", accessor: "first_dragon", width: "3%"},
         { Header: "First Tower", accessor: "first_tower", width: "3%"},

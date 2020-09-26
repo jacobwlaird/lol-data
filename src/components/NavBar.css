@@ -1,0 +1,13 @@
+a.nostyle:hover {
+    text-decoration: inherit;
+    color: inherit;
+    cursor: pointer;
+    flex-grow: 1;
+}
+a.nostyle {
+    text-decoration: inherit;
+    color: inherit;
+    cursor: auto;
+    flex-grow: 1;
+}
+
