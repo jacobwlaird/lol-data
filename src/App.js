@@ -1,9 +1,6 @@
-import React, { useState, useEffect } from 'react';
-//import './App.css';
-import MyTable from './components/MyTable';
-import NavBar from './components/NavBar';
-import Dashboard from './components/Dashboard';
-import TeamDashboard from './components/TeamDashboard';
+import React from 'react';
+import Dashboard from './components/player/Dashboard';
+import TeamDashboard from './components/team/TeamDashboard';
 import "bootstrap/dist/css/bootstrap.min.css"
 import { BrowserRouter as Router, Route} from 'react-router-dom';
 

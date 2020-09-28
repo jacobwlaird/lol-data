@@ -1,6 +1,6 @@
 extern crate actix_files;
 use actix_web::{middleware, web, App, HttpRequest, HttpServer, Result};
-use actix_web::http::{Method, StatusCode};
+use actix_web::http::{StatusCode};
 use actix_files::Files;
 use actix_files::NamedFile;
 

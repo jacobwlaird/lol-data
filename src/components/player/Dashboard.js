@@ -1,47 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import MyTable from './MyTable';
-import NavBar from './NavBar';
+import DataTable from '../common/DataTable';
+import NavBar from '../common/NavBar';
 import "bootstrap/dist/css/bootstrap.min.css"
 
+/* Represents an individual players dashboard.  Currently only contains a table. */
 const Dashboard = (props) => {
-
     const [userData, setUserData] = useState(0);
-    let api_request = "";
-    if (props.match.params.playerId !== undefined)
-    {
-	    api_request = "/api/get_user_data?name=" + props.match.params.playerId;
-    }
-    else {
-	    api_request = "/api/get_user_data?name=spaynkee";
-    }
 
-    //Somewhere in here, we need to do something if the name isn't known to us. We probably have
-    //to add a users table and get everyone in there? for now we can hardcode the names I think.
+    let api_request = "/api/get_user_data?name=" + props.match.params.playerId;
 
     useEffect(() => {
-	    let api_request = "";
-	    if (props.match.params.playerId !== undefined)
-	    {
-		    api_request = "/api/get_user_data?name=" + props.match.params.playerId;
-	    }
-	    else {
-		    api_request = "/api/get_user_data?name=spaynkee";
-	    }
     fetch(api_request).then(res => res.json()).then(data => {
 	  setUserData(data);
 	});
-    }, []);
+    }, [props.match.params.playerId, api_request]);
 
     let tableData = Array.from(userData);
 
-    //function for our component to update the page data when possible.
+    /* updateUserData is used to update the data on the screen after the update script finishes. */
     const updateUserData = () => {
-		    fetch(api_request).then(res => res.json()).then(data => {
-		    setUserData(data);
-		    tableData = Array.from(userData);
-		});
+	fetch(api_request).then(res => res.json()).then(data => {
+	    setUserData(data);
+	    tableData = Array.from(userData);
+	});
     }
 
+    //Column settings for the players table.
     const columns = [
         { Header: "Role", accessor: "role", width: "4%"},
         { Header: "Champion Name", accessor: "champion_name", width: "7%"},
@@ -60,25 +44,23 @@ const Dashboard = (props) => {
         { Header: "Pinks Get", accessor: "vision_wards_bought", width: "3%"},
         { Header: "Items", accessor: "items", width: "10%"},
         { Header: "Wonned?", accessor: (values) => {
+	    //Converts Win/Fail to true/false
 	    const bool = values.win === "Win" ? 'True' : 'False';
 	    return bool
 	    }, width: "3%"}
     ];
 
-    const root = (
-		    <div className="root" id="root">
-		    <NavBar updateState={updateUserData}/>
-			<MyTable columns={columns} data={tableData} 
-			    getCellProps={cellInfo => ({
-			      style: {
-			      backgroundColor: ((cellInfo.row.cells[16].value ==="True") ? `rgba(0,255,0,.2)`: `rgba(255,0,0,.2)`)
-			    	}})}
-			    />
-		    </div>
+    return (
+	<div className="root" id="PlayerRoot">
+	    <NavBar updateState={updateUserData}/>
+		<DataTable columns={columns} data={tableData} 
+		    getCellProps={cellInfo => ({
+			style: {
+			    backgroundColor: ((cellInfo.row.cells[16].value ==="True") ? `rgba(0,255,0,.2)`: `rgba(255,0,0,.2)`)
+			}})}
+	    />
+	</div>
     );
-
-    return root
-
 }
 
 export default Dashboard;
