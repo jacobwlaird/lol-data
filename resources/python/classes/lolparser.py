@@ -58,6 +58,7 @@ class LolParser():
     items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
     json_data_table = db.Table('json_data', metadata, autoload=True, autoload_with=engine)
     runs_table = db.Table('script_runs', metadata, autoload=True, autoload_with=engine)
+    league_users_table = db.Table('league_users', metadata, autoload=True, autoload_with=engine)
 
     log_file_name = _config.get('LOGGING', 'file_name')
     logging.basicConfig(filename=log_file_name, level=logging.DEBUG)
@@ -287,6 +288,23 @@ class LolParser():
             previous_matches.append(match.match_id)
 
         return previous_matches
+
+    @classmethod
+    def get_summoner_names(cls) -> list:
+        """ Creates and returns a list of summoner names that we have stored in users
+
+            Returns:
+                A list of names stored in the league_users table
+        """
+        summoner_names = []
+        select_league_users = db.select([cls.league_users_table])
+
+        league_users = cls.connection.execute(select_league_users).fetchall()
+
+        for user in league_users:
+            summoner_names.append(user.summoner_name)
+
+        return summoner_names
 
     @classmethod
     def store_json_data(cls, match: int, json_formatted_string: str):

@@ -8,6 +8,7 @@ and when it finishes or fails.
 
 Example:
     $ python3 loldata.py Manual
+    $ python3 loldata.py Manual 3000
 
 """
 from sys import argv
@@ -25,17 +26,30 @@ def main():
             Source -- the source of the run, be it manual, daily, or otherwise.
             To be stored in the script runs table.
 
+            Game_Index -(Optional)- The game index we're searching up to. A higher number for this
+            drastically increases run time, so it defaults to 200 inside LolGather, and
+            can be overwritten here.
+
     """
 
     #pylint: disable=broad-except # this is by design, as I want every exception to be caught here.
-    if len(argv) != 2:
+
+    if len(argv) < 2:
+        print("Expected an argument denoting run 'source'. (Manual, test, etc)")
         return
+
+    if len(argv) == 3:
+        try:
+            LolGather.max_game_index = int(argv[2])
+        except ValueError:
+            print("Excpeted int for 3rd parameter")
+            return
 
     LolParser.store_run_info(argv[1])
     LolParser.logger.info('\nScript is starting\n')
 
+
     try:
-        LolGather.max_game_index = 3000 # increase this if we want to run further back
 
         account_list = [LolAccount(acc_name) for acc_name in LolGather.accounts]
 
