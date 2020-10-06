@@ -1,12 +1,11 @@
 import React, { useState, useEffect} from 'react';
 import "./NavBar.css";
 import AppBar from '@material-ui/core/AppBar';
-import IconButton from '@material-ui/core/IconButton';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
-import MenuIcon from '@material-ui/icons/Menu';
 import Button from '@material-ui/core/Button';
 import Chip from '@material-ui/core/Chip';
+import UserMenuButton from './UserMenuButton';
 
 /* Contains our nav bar and all its related logic. */
 const NavBar = ({props, updateState}) => {
@@ -65,9 +64,7 @@ const NavBar = ({props, updateState}) => {
 
 	return (<AppBar position="static">
 		  <Toolbar variant="dense">
-		    <IconButton edge="start" color="inherit" aria-label="menu">
-		    <MenuIcon />
-		    </IconButton>
+		    <UserMenuButton />
 		    <a className="nostyle" href="/">
 			<Typography variant="h6" style={{flexGrow: 1}} color="inherit">
 			    Hell yeah bröther
