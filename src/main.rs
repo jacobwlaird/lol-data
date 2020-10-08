@@ -16,6 +16,9 @@ use update_data::update_data;
 #[path = "apis/get_script_status.rs"] mod get_script_status;
 use get_script_status::get_script_status;
 
+#[path = "apis/get_league_users.rs"] mod get_league_users;
+use get_league_users::get_league_users;
+
 async fn team_data() -> std::string::String {
     get_team_data()
 }
@@ -30,6 +33,11 @@ async fn update() -> std::string::String {
 
 async fn script_status() -> std::string::String {
     get_script_status()
+}
+
+
+async fn league_users() -> std::string::String {
+    get_league_users()
 }
 
 async fn route_to_index() -> Result<NamedFile> {
@@ -50,6 +58,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/api/get_user_data").to(user_data))
             .service(web::resource("/api/update_data").to(update))
             .service(web::resource("/api/get_script_status").to(script_status))
+            .service(web::resource("/api/get_league_users").to(league_users))
             .service(Files::new("/", "./build").index_file("index.html"))
             .default_service(web::to(route_to_index))
     })

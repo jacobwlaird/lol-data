@@ -91,5 +91,5 @@ export default TeamDashboard;
 
 //A helper function to return an <a> element with a link to the passed players profile.
 function buildParticipantLink(playerName){
-    return("<a className='nostyle' href='/"+playerName+"'>"+playerName+"</a> ");
+    return("<a href='/"+playerName+"'>"+playerName+"</a> ");
 };
