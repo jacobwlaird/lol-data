@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DataTable from '../common/DataTable';
 import NavBar from '../common/NavBar';
+import GamesFilter from './GamesFilter';
 import "bootstrap/dist/css/bootstrap.min.css"
 
 /* Represents an individual players dashboard.  Currently only contains a table. */
@@ -8,6 +9,9 @@ const Dashboard = (props) => {
     const [userData, setUserData] = useState(0);
 
     let api_request = "/api/get_user_data?name=" + props.match.params.playerId;
+    //We need to do stuff when we have champ card data.
+    //What we want to do is... call a function UpdateChampCards?
+    //We have to create a champ card component
 
     useEffect(() => {
     fetch(api_request).then(res => res.json()).then(data => {
@@ -50,10 +54,12 @@ const Dashboard = (props) => {
 	    }, width: "3%"}
     ];
 
+	//We want to add a bunch of cards for each element in an API call?
     return (
 	<div className="root" id="PlayerRoot">
 	    <NavBar updateState={updateUserData}/>
-		<DataTable columns={columns} data={tableData} 
+	    <GamesFilter />
+	    <DataTable columns={columns} data={tableData} 
 		    getCellProps={cellInfo => ({
 			style: {
 			    backgroundColor: ((cellInfo.row.cells[16].value ==="True") ? `rgba(0,255,0,.2)`: `rgba(255,0,0,.2)`)

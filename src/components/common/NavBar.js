@@ -8,7 +8,7 @@ import Chip from '@material-ui/core/Chip';
 import UserMenuButton from './UserMenuButton';
 
 /* Contains our nav bar and all its related logic. */
-const NavBar = ({props, updateState}) => {
+const NavBar = ({label, updateState}) => {
 
 	//Holds the state of our navbar and its elements
 	const [navBarState, setNavBarState] = useState({
