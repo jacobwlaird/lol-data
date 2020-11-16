@@ -1,9 +1,9 @@
-general.cfg
-config.toml
+/backend/general.cfg
+/backend/config.toml
 aws.cfg
 tests/*
-resources/python/classes/__pycache__
-resources/python/scripts/__pycache__
+backend/resources/python/classes/__pycache__
+backend/resources/python/scripts/__pycache__
 *.DS_Store
 todo
 lol-data_nginx.conf
@@ -12,7 +12,7 @@ lol-data_nginx.conf
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+/frontend/node_modules
 /.pnp
 .pnp.js
 
