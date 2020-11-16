@@ -1,6 +1,8 @@
 # maybe try alpine
 FROM ubuntu:20.04
 
+WORKDIR /usr/src/app
+
 RUN apt update -y && \ 
     apt upgrade -y && \
     apt-get install -y --no-install-recommends curl && \
@@ -14,14 +16,11 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends pk
 RUN curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH /root/.cargo/bin:$PATH
 
-# install node
-RUN curl -sL https://deb.nodesource.com/setup_14.x | sh -s -- -y && \
-    apt-get install -y --no-install-recommends nodejs
-
+# path differences?
 COPY . .
 
-RUN npm install && \
-    pip3 install -r requirements.txt && \
-    npm run build
+RUN pip3 install -r requirements.txt
+
+EXPOSE 5000
 
 CMD cargo run
