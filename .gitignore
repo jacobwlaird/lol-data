@@ -1,5 +1,5 @@
-/backend/general.cfg
-/backend/config.toml
+backend/general.cfg
+backend/config.toml
 aws.cfg
 tests/*
 backend/resources/python/classes/__pycache__
@@ -7,7 +7,7 @@ backend/resources/python/scripts/__pycache__
 *.DS_Store
 todo
 lol-data_nginx.conf
-/target
+backend/target
 *.sql
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
