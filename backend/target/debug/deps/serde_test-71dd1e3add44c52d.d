@@ -1,0 +1,12 @@
+/Users/paul/Desktop/git/lol-data/backend/target/debug/deps/serde_test-71dd1e3add44c52d.rmeta: /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/lib.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/assert.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/ser.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/de.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/token.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/error.rs
+
+/Users/paul/Desktop/git/lol-data/backend/target/debug/deps/libserde_test-71dd1e3add44c52d.rlib: /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/lib.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/assert.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/ser.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/de.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/token.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/error.rs
+
+/Users/paul/Desktop/git/lol-data/backend/target/debug/deps/serde_test-71dd1e3add44c52d.d: /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/lib.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/assert.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/ser.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/de.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/token.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/error.rs
+
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/lib.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/assert.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/ser.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/de.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/token.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/serde_test-0.8.23/src/error.rs:

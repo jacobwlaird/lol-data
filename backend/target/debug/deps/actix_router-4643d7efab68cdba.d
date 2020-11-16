@@ -1,0 +1,12 @@
+/Users/paul/Desktop/git/lol-data/backend/target/debug/deps/actix_router-4643d7efab68cdba.rmeta: /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/lib.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/de.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/path.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/resource.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/router.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/url.rs
+
+/Users/paul/Desktop/git/lol-data/backend/target/debug/deps/libactix_router-4643d7efab68cdba.rlib: /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/lib.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/de.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/path.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/resource.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/router.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/url.rs
+
+/Users/paul/Desktop/git/lol-data/backend/target/debug/deps/actix_router-4643d7efab68cdba.d: /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/lib.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/de.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/path.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/resource.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/router.rs /Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/url.rs
+
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/lib.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/de.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/path.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/resource.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/router.rs:
+/Users/paul/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-router-0.2.4/src/url.rs:
