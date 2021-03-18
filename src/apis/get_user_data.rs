@@ -23,6 +23,7 @@ pub fn get_user_data(req: HttpRequest) -> std::string::String {
         struct UserData {
                 id: i64,
                 match_id: i64,
+                player: Option<String>,
                 role: Option<String>,
                 champion: Option<String>,
                 champion_name: Option<String>,
@@ -73,6 +74,7 @@ pub fn get_user_data(req: HttpRequest) -> std::string::String {
         UserData {
             id: row.take("id").unwrap(),
             match_id: row.take("match_id").unwrap(),
+            player: row.take("player").unwrap(),
             role: row.take("role").unwrap(),
             champion: row.take("champion").unwrap(),
             champion_name: row.take("champion_name").unwrap(),
