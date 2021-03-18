@@ -52,13 +52,42 @@ class LolParser():
     connection = engine.connect()
     metadata = db.MetaData()
 
-    champs_table = db.Table('champions', metadata, autoload=True, autoload_with=engine)
-    match_data_table = db.Table('match_data', metadata, autoload=True, autoload_with=engine)
-    team_data_table = db.Table('team_data', metadata, autoload=True, autoload_with=engine)
-    items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
-    json_data_table = db.Table('json_data', metadata, autoload=True, autoload_with=engine)
-    runs_table = db.Table('script_runs', metadata, autoload=True, autoload_with=engine)
-    league_users_table = db.Table('league_users', metadata, autoload=True, autoload_with=engine)
+    # wrapping table defs in try/catch so we can use the class even if a table doesn't exist.
+    try:
+        champs_table = db.Table('champions', metadata, autoload=True, autoload_with=engine)
+    except exc.NoSuchTableError:
+        champs_table = None
+
+    try:
+        match_data_table = db.Table('match_data', metadata, autoload=True, autoload_with=engine)
+    except exc.NoSuchTableError:
+        match_data_table = None
+
+    try:
+        team_data_table = db.Table('team_data', metadata, autoload=True, autoload_with=engine)
+    except exc.NoSuchTableError:
+        team_data_table = None
+
+    try:
+        items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
+    except exc.NoSuchTableError:
+        items_table = None
+
+    try:
+        json_data_table = db.Table('json_data', metadata, autoload=True, autoload_with=engine)
+    except exc.NoSuchTableError:
+        json_data_table = None
+
+    try:
+        runs_table = db.Table('script_runs', metadata, autoload=True, autoload_with=engine)
+    except exc.NoSuchTableError:
+        runs_table = None
+
+
+    try:
+        league_users_table = db.Table('league_users', metadata, autoload=True, autoload_with=engine)
+    except exc.NoSuchTableError:
+        league_users_table = None
 
     log_file_name = _config.get('LOGGING', 'file_name')
     logging.basicConfig(filename=log_file_name, level=logging.DEBUG)
