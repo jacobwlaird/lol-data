@@ -56,7 +56,7 @@ def main():
         matches_table = Table('match_data', LolParser.metadata,\
                 autoload=True, autoload_with=LolParser.engine)
         matches_table.drop(LolParser.engine)
-    except exc.OperationalError:
+    except exc.NoSuchTableError:
         print("Hey, the match_data table probably didn't\
                exist, so we're just gonna create it instead of dropping it and then creating it.")
 
@@ -93,7 +93,7 @@ def main():
         runs_table = Table('script_runs', LolParser.metadata, autoload=True,\
                 autoload_with=LolParser.engine)
         runs_table.drop(LolParser.engine)
-    except exc.OperationalError:
+    except exc.NoSuchTableError:
         print("Hey, the script_runs table probably didn't exist,\
                 so we're just gonna create it instead of dropping it and then creating it.")
 
