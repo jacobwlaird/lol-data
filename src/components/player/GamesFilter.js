@@ -1,10 +1,13 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
+import { Container, Row, Col } from 'reactstrap';
 import { makeStyles } from '@material-ui/core/styles';
 import "bootstrap/dist/css/bootstrap.min.css"
 import Button from '@material-ui/core/Button';
 import FormGroup from '@material-ui/core/FormGroup';
 import Selector from './Selector';
 import FormCheckbox from './FormCheckbox';
+import ChampCard from './ChampCard';
+import './GamesFilter.css';
 
 const useStyles = makeStyles((theme) => ({
 	  root: {
@@ -15,37 +18,60 @@ const useStyles = makeStyles((theme) => ({
 	checkbox: { display: "flex" ,
 		    textAlign: "center"}
 }));
+
 /* Holds all the filters for our player data. */
-const GamesFilter = (props) => {
-	//Declare dates options and role options, os we can pass them to the component
+const GamesFilter = ({player}) => {
 	const classes = useStyles();
-        const [dateValue, setDateVal] = useState("");
-        const [roleValue, setRoleVal] = useState("");
-	const [incNone, setIncNone] = useState(true);
+        const [maxGamesValue, setGamesVal] = useState("50");
+        const [roleValue, setRoleVal] = useState("All");
+	const [incNone, setIncNone] = useState(false);
+	const [champData, setChampData] = useState("");
 
-	let dateValues = ["This week", "This Patch", "Last 20 Games"];
-	let roleValues = ["Top", "Jungle", "Mid", "Support", "Bot"];
+	//determines options for our filters
+	let gameValues = ['10', '20', '50', '100', 'All']
+	let roleValues = ["All", "Top", "Jungle", "Middle", "Support", "Bottom"];
 
-	//Do I need a state var for each filter thing?
+	    useEffect(() => {
+	    fetch('/api/get_champ_card_data?name='+player+"&role="+roleValue).then(res => res.json()).then(data => {
 
-	//I will clear all filters and reset the data.
+		  setChampData(data);
+		});
+	    }, []);
+
+	    let dataArray = Array.from(champData);
+
 	function clear()
 	{
-		setDateVal("");
-		setRoleVal("");
+		setGamesVal("50");
+		setRoleVal("All");
 		setIncNone(false);
+		setChampData("");
+		dataArray = [];
 	}
 	function submit()
 	{
-		alert("Not yet implemented :)");
-		//I guess we send a request to a new API, and return.. something.
-		//It will be a list of json objects that contains all the info for our cards?
-		//So, I have to make a new endpoint that accepts several params, and then 
-		// how do we send that data to another component?
+		    fetch('/api/get_champ_card_data?name='+player+'&role='+roleValue+'&maxgames='+maxGamesValue+'&incnone='+incNone).then(res => res.json()).then(data => {
+			  setChampData(data);
+		});
+
+	        let dataArray = Array.from(champData);
+	    
 
 	}
-	const updateDate = (event) => {
-		setDateVal(event.target.value);
+
+	//Rename this at some point when I remember what it does.
+	function checkIndex(data){
+		return (<div><Col><ChampCard className="card" data={data}/></Col></div>)
+
+	}
+
+	function newRow() {
+		return 
+
+	}
+
+	const updateMaxGames = (event) => {
+		setGamesVal(event.target.value);
 	}
 
 	const updateRole = (event) => {
@@ -57,18 +83,28 @@ const GamesFilter = (props) => {
 	}
 
 
-	//2 dropdowns, a checkbox, a button
     return (
 	    <div>
 	    	<FormGroup row="true">
-	    	    <Selector value={dateValue} updateData={updateDate} label="Date" values={dateValues}/>
+	    	    <Selector value={maxGamesValue} updateData={updateMaxGames} label="Games" values={gameValues}/>
 	    	    <Selector value={roleValue} updateData={updateRole} label="Role" values={roleValues}/>
-	    	    <FormCheckbox value={incNone} updateData={updateIncNone} className={classes.checkbox} label="Include 'None'"/>
+	    	    <FormCheckbox value={incNone} updateData={updateIncNone} className={classes.checkbox} label="Include 'None' Role"/>
 	    	    <div className={classes.root}>
 			    <Button variant="contained" type="reset" color="secondary" onClick={clear}>Clear</Button>
 			    <Button variant="contained" color="secondary" onClick={submit}>Filter</Button>
 	    	    </div>
 	    	</FormGroup>
+	    	<Container>
+	    	    <div>
+	    		{dataArray.map((row_array, index) => (
+				<Row className="row">
+				{row_array.map((data, inner_index) => (
+					checkIndex(data)
+				))}
+				</Row>
+			))}
+	    	    </div>
+	    	</Container>
 	    </div>
     );
 }
