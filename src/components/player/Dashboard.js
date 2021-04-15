@@ -58,7 +58,7 @@ const Dashboard = (props) => {
     return (
 	<div className="root" id="PlayerRoot">
 	    <NavBar updateState={updateUserData}/>
-	    <GamesFilter />
+	    <GamesFilter player={props.match.params.playerId}/>
 	    <DataTable columns={columns} data={tableData} 
 		    getCellProps={cellInfo => ({
 			style: {

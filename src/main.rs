@@ -19,6 +19,9 @@ use get_script_status::get_script_status;
 #[path = "apis/get_league_users.rs"] mod get_league_users;
 use get_league_users::get_league_users;
 
+#[path = "apis/get_champ_card_data.rs"] mod get_champ_card_data;
+use get_champ_card_data::get_champ_card_data;
+
 async fn team_data() -> std::string::String {
     get_team_data()
 }
@@ -40,6 +43,10 @@ async fn league_users() -> std::string::String {
     get_league_users()
 }
 
+async fn champ_card_data(req: HttpRequest) -> std::string::String {
+    get_champ_card_data(req)
+}
+
 async fn route_to_index() -> Result<NamedFile> {
 
     Ok(NamedFile::open("build/index.html")?.set_status_code(StatusCode::NOT_FOUND))
@@ -59,6 +66,7 @@ async fn main() -> std::io::Result<()> {
             .service(web::resource("/api/update_data").to(update))
             .service(web::resource("/api/get_script_status").to(script_status))
             .service(web::resource("/api/get_league_users").to(league_users))
+            .service(web::resource("/api/get_champ_card_data").to(champ_card_data))
             .service(Files::new("/", "./build").index_file("index.html"))
             .default_service(web::to(route_to_index))
     })

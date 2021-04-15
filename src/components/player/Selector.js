@@ -37,9 +37,6 @@ const Selector = (props) => {
 	              onChange={update}
 	              label="Passed"
 	            >
-	              <MenuItem value="">
-	                <em>None</em>
-	              </MenuItem>
 	    {props.values.map( (item,keyIndex) =>
 		                     <MenuItem  key={keyIndex} value={item}>{item}</MenuItem>)}
 	            </Select>
