@@ -510,7 +510,7 @@ class LolParser():
         start_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(start_t))
 
         # Duration might go over an hour, so I have to use a check for presentability's sake
-        if game_duration > 3600:
+        if game_duration >= 3600:
             duration = time.strftime("%H:%M:%S", time.gmtime(game_duration))
         else:
             duration = time.strftime("%M:%S", time.gmtime(game_duration))
@@ -619,7 +619,7 @@ class LolParser():
         champ_perks = ""
         perks = ['perk0', 'perk1', 'perk2', 'perk3', 'perk4', 'perk5']
         for perk in perks:
-            if perk:
+            if perk in participant_stats:
                 champ_perks += f"{participant_stats[perk]}, "
 
         champ_perks = champ_perks[:-2]
@@ -660,7 +660,9 @@ class LolParser():
 
     @staticmethod
     def get_first_blood_kill_assist(stats: dict) -> Tuple[int, int]:
-        """ Returns integers denoting if a participant was involved in a first blood
+        """ Returns integers denoting if a participant was involved in a first blood. If a
+            participant was not involved, these keys do not exist.
+
             Args:
                 stats: a large dictionary object containing a ton of stats
 
@@ -679,4 +681,4 @@ class LolParser():
         else:
             first_blood_assist = 0
 
-        return first_blood_kill, first_blood_assist
+        return int(first_blood_kill), int(first_blood_assist)

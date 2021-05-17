@@ -21,6 +21,9 @@ def main():
 
     """
 
+    print("Sup, it ran?")
+    return
+
     #pylint: disable=broad-except # this is by design, as I want every exception to be caught here.
 
     my_team_data = requests.get("http://paulzplace.asuscomm.com/api/get_team_data")
