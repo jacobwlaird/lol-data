@@ -4,10 +4,8 @@ This script will populate the match_data,team_data, and league_users tables in t
 specified in the config file.
 
 The new data comes from the public api endpoints I have set up for these tables.
-This is useful if we're creating
-
-a new test database, or if we want to copy the data to anywhere that doesn't have
-access to a sql dump.
+This is useful if we're creating a new test database, or if we want to copy the
+data to anywhere that doesn't have access to a sql dump.
 
 """
 import json
@@ -20,10 +18,6 @@ def main():
         We make 3 requests to our public endpoints, and populate the db with that data.
 
     """
-
-    print("Sup, it ran?")
-    return
-
     #pylint: disable=broad-except # this is by design, as I want every exception to be caught here.
 
     my_team_data = requests.get("http://paulzplace.asuscomm.com/api/get_team_data")
