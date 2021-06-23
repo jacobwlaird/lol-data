@@ -1,101 +1,32 @@
 """ lolparser.py class
 
 This class contains all the methods needed to store and retrieve league of legends
-data to or from a database. It handles all db transactions during the script run,
-as well as handling logging.
+data to or from our database. It handles all db transactions during the script run.
 
 """
-import logging
 import time
 from typing import Tuple, Dict
 from datetime import datetime as date
-import configparser
-import sqlalchemy as db # type: ignore
-from sqlalchemy import exc # type: ignore
+from .lolconfig import LolConfig
+from .loldb import LolDB
+from .lollogger import LolLogger
+from .models import TeamData, MatchData, JsonData, Champions, Items, ScriptRuns, LeagueUsers
 
+#pylint: disable=too-many-public-methods # No way around this one right now. Maybe a refactor later
 class LolParser():
-    """ Contains all the methods and functions needed by loldata.py and lolaccount.py
-        Attributes:
-
-            _config         (obj): ConfigParser object for reading config file
-
-            db_host        (str): database host address from config file
-            db_user        (str): database user from config file
-            db_pw          (str): database user password from config file
-            db_name        (str): database name from config file
-
-            engine        (obj): Sqlalchemy engine object created with config file contents
-            connection    (obj): Sqlalchemy connection object created from the sqla engine
-            metadata      (obj): Database metadata object
-
-            champs_table     (obj): Sqlalchemy Table object for the champions table
-            match_data_table (obj): Sqlalchemy Table object for the match_data table
-            team_data_table  (obj): Sqlalchemy Table object for the team_data table
-            items_table      (obj): Sqlalchemy Table object for the items table
-            json_data_table  (obj): Sqlalchemy Table object for the json_data table
-            runs_table       (obj): Sqlalchemy Table object for the script_runs table
-
-            log_file_name (str): Log file name pulled from config file
-            logger        (obj): Log object that we call to, to log
+    """ Contains all the methods and functions needed by loldata.py and classes/lolaccount.py
+        to store data into the database.
     """
-    #pylint: disable=no-value-for-parameter # this is a false positive?
-    _config = configparser.ConfigParser()
-    _config.read('./resources/python/general.cfg')
 
-    db_host = _config.get('DATABASE', 'db_id')
-    db_user = _config.get('DATABASE', 'db_user')
-    db_pw = _config.get('DATABASE', 'db_password')
-    db_name = _config.get('DATABASE', 'db_name')
+    def __init__(self):
+        self.config = LolConfig()
+        self.logger = LolLogger(self.config.log_file_name)
 
-    engine = db.create_engine('mysql+pymysql://{}:{}@{}/{}?charset=utf8'.format(db_user,\
-            db_pw, db_host, db_name), pool_size=100, max_overflow=100)
-    connection = engine.connect()
-    metadata = db.MetaData()
+        self.our_db = LolDB(self.config.db_host, self.config.db_user, self.config.db_pw,\
+                self.config.db_name)
 
-    # wrapping table defs in try/catch so we can use the class even if a table doesn't exist.
-    try:
-        champs_table = db.Table('champions', metadata, autoload=True, autoload_with=engine)
-    except exc.NoSuchTableError:
-        champs_table = None
-
-    try:
-        match_data_table = db.Table('match_data', metadata, autoload=True, autoload_with=engine)
-    except exc.NoSuchTableError:
-        match_data_table = None
-
-    try:
-        team_data_table = db.Table('team_data', metadata, autoload=True, autoload_with=engine)
-    except exc.NoSuchTableError:
-        team_data_table = None
-
-    try:
-        items_table = db.Table('items', metadata, autoload=True, autoload_with=engine)
-    except exc.NoSuchTableError:
-        items_table = None
-
-    try:
-        json_data_table = db.Table('json_data', metadata, autoload=True, autoload_with=engine)
-    except exc.NoSuchTableError:
-        json_data_table = None
-
-    try:
-        runs_table = db.Table('script_runs', metadata, autoload=True, autoload_with=engine)
-    except exc.NoSuchTableError:
-        runs_table = None
-
-
-    try:
-        league_users_table = db.Table('league_users', metadata, autoload=True, autoload_with=engine)
-    except exc.NoSuchTableError:
-        league_users_table = None
-
-    log_file_name = _config.get('LOGGING', 'file_name')
-    logging.basicConfig(filename=log_file_name, level=logging.DEBUG)
-    logger = logging.getLogger()
-
-    @classmethod
-    def select_previous_matches(cls, account_name: str) -> list:
-        """ Gets the matches we already have in match_data and returns the match_ids in a list
+    def select_previous_match_data_rows(self, account_name: str) -> list:
+        """ Gets the matches we already have in match_data and returns the match data as a list
 
             Args:
                 account_name: the name of the player we're getting matches for
@@ -105,29 +36,51 @@ class LolParser():
 
         """
 
-        select_previous_matches  = db.select([cls.match_data_table]).where(\
-            cls.match_data_table.c.player == account_name)
+        return self.our_db.session.query(MatchData).filter_by(player=account_name).all()
 
-        player_match_history = cls.connection.execute(select_previous_matches).fetchall()
-
-        return player_match_history
-
-    @classmethod
-    def select_previous_team_data_matches(cls) -> list:
+    def select_previous_team_data_rows(self) -> list:
         """ Gets the matches we already have in team_data and returns a list of row objects
 
             Returns:
                 A list of team_data row objects
+
         """
-        select_previous_matches = db.select([cls.team_data_table])
-        team_data_history = cls.connection.execute(select_previous_matches).fetchall()
+        return self.our_db.session.query(TeamData).all()
 
-        return team_data_history
+    def get_previous_team_data_match_ids(self) -> list:
+        """ Creates and Returns a list of the match_ids already in team_data
+
+            Returns:
+                A list of integers containing all match_ids currently in team_data
+        """
+        team_data_match_history = self.select_previous_team_data_rows()
+        previous_team_data_matches = []
+
+        for row in team_data_match_history:
+            previous_team_data_matches.append(row.match_id)
+
+        return previous_team_data_matches
+
+    def get_previous_player_match_data_ids(self, name: str) -> list:
+        """ Creates and returns a list containing all the match_ids for each row in match_data
+
+            Args:
+                name: the name of the player we're getting match_data_for
+
+            Return:
+                A list of integers containing all match_ids currently stored for this player
+        """
+        player_match_history = self.select_previous_match_data_rows(name)
+        previous_player_matches = []
 
 
-    @classmethod
-    def insert_player_table_data(cls, match_data: dict, account_name: str, account_id: str):
-        """ updates parses through a match_data dict and update the table for a match_id
+        for match in player_match_history:
+            previous_player_matches.append(match.match_id)
+
+        return previous_player_matches
+
+    def insert_match_data_row(self, match_data: dict, account_name: str, account_id: str):
+        """ Parses through a large dict and inserts data into the match_data table.
 
             Args:
                 match_data: a large dict containing all the match data
@@ -135,69 +88,54 @@ class LolParser():
                 account_id: the id of the player so we can determine participant index
 
         """
+        # This object will store all the data we intend to save.
+        match_obj = MatchData()
 
-        participant_index = cls.get_participant_index(match_data['participantIdentities'],\
+        participant_index = self.get_participant_index(match_data['participantIdentities'],\
                 account_id)
 
-        match_id = match_data['gameId']
-        player=account_name
+        match_obj.match_id = match_data['gameId']
+        match_obj.player = account_name
 
         participant = match_data['participants'][participant_index]
+        match_obj.champion = participant['championId']
+
         stats = participant['stats']
-        champion = participant['championId']
 
-        kills = stats['kills']
-        deaths = stats['deaths']
-        assists = stats['assists']
-        wards_placed = stats['wardsPlaced']
-        damage_to_champs = stats['totalDamageDealtToChampions']
-        damage_to_turrets = stats['damageDealtToTurrets']
-        vision_wards_bought = stats['visionWardsBoughtInGame']
-        wards_killed = stats['wardsKilled']
+        match_obj.kills = stats['kills']
+        match_obj.deaths = stats['deaths']
+        match_obj.assists = stats['assists']
+        match_obj.wards_placed = stats['wardsPlaced']
+        match_obj.damage_to_champs = stats['totalDamageDealtToChampions']
+        match_obj.damage_to_turrets = stats['damageDealtToTurrets']
+        match_obj.vision_wards_bought = stats['visionWardsBoughtInGame']
+        match_obj.wards_killed = stats['wardsKilled']
 
-        champ_name = cls.get_champ_name(participant['championId'])
+        match_obj.champion_name = self.get_champ_name(participant['championId'])
 
-        first_blood_kill, first_blood_assist = LolParser.get_first_blood_kill_assist(stats)
+        match_obj.first_blood, match_obj.first_blood_assist =\
+                self.get_first_blood_kill_assist(stats)
+
         timeline = participant['timeline']
 
-        role = cls.get_role(timeline)
-        gold_per_minute, creeps_per_minute, xp_per_minute = \
-               cls.get_gold_cs_xp_delta(timeline)
+        role = self.get_role(timeline)
 
-        enemy_champ = cls.get_enemy_champ(role, participant_index, match_data['participants'])
-        enemy_champ_name = cls.get_champ_name(enemy_champ)
+        match_obj.role = role
+        match_obj.gold_per_minute, match_obj.creeps_per_minute, match_obj.xp_per_minute = \
+               self.get_gold_cs_xp_delta(timeline)
 
-        champ_items = cls.get_items(stats)
-        champ_perks = LolParser.get_perks(stats)
+        match_obj.enemy_champion = self.get_enemy_champ(role, participant_index,\
+                match_data['participants'])
 
-        match_stats_insert = cls.match_data_table.insert().values(
-                match_id=match_id,\
-                player=player,\
-                kills=kills,\
-                deaths=deaths,\
-                assists=assists,\
-                role=role,\
-                champion=champion,\
-                wards_placed=wards_placed,\
-                damage_to_champs=damage_to_champs,\
-                damage_to_turrets=damage_to_turrets,\
-                vision_wards_bought=vision_wards_bought,\
-                gold_per_minute=gold_per_minute,\
-                creeps_per_minute=creeps_per_minute,\
-                xp_per_minute=xp_per_minute,\
-                champion_name=champ_name,\
-                enemy_champion=enemy_champ,\
-                enemy_champion_name=enemy_champ_name,\
-                first_blood=first_blood_kill,\
-                first_blood_assist=first_blood_assist,\
-                items=champ_items,\
-                perks=champ_perks,\
-                wards_killed=wards_killed)
+        match_obj.enemy_champion_name = self.get_champ_name(match_obj.enemy_champion)
 
-        cls.connection.execute(match_stats_insert)
+        match_obj.items = self.get_items(stats)
+        match_obj.perks = self.get_perks(stats)
 
-    @classmethod
-    def insert_team_data_table_row(cls, match_data: dict, account_name: str, account_id: str):
+        self.our_db.session.add(match_obj)
+        self.our_db.session.commit()
+
+    def insert_team_data_row(self, match_data: dict, account_name: str, account_id: str):
         """ Goes through a match_data dict, parses out information, and stores into team_data table
 
             Args:
@@ -207,81 +145,58 @@ class LolParser():
 
         """
 
-        team_data, enemy_team_data, team_id = cls.get_team_data(match_data, account_id)
+        # determine ally and enemy team data
+        team_data, enemy_team_data, team_id = self.get_team_data(match_data, account_id)
+        team_obj = TeamData()
 
         # get some team information.
-        game_outcome = team_data['win']
-        first_blood = team_data['firstBlood']
-        first_baron = team_data['firstBaron']
-        first_tower = team_data['firstTower']
-        first_rift_herald = team_data['firstRiftHerald']
-        ally_rift_herald_kills = team_data['riftHeraldKills']
-        first_dragon = team_data['firstDragon']
-        ally_dragon_kills = team_data['dragonKills']
-        first_inhib = team_data['firstInhibitor']
-        inhib_kills = team_data['inhibitorKills']
-        list_of_bans = ""
-        list_of_enemy_bans = ""
-        game_version = match_data['gameVersion']
-        match = match_data['gameId']
+        team_obj.participants = account_name
+        team_obj.win = team_data['win']
+        team_obj.first_blood = team_data['firstBlood']
+        team_obj.first_baron = team_data['firstBaron']
+        team_obj.first_tower = team_data['firstTower']
+        team_obj.first_rift_herald = team_data['firstRiftHerald']
+        team_obj.ally_rift_herald_kills = team_data['riftHeraldKills']
+        team_obj.first_dragon = team_data['firstDragon']
+        team_obj.ally_dragon_kills = team_data['dragonKills']
+        team_obj.first_inhib = team_data['firstInhibitor']
+        team_obj.inhib_kills = team_data['inhibitorKills']
+        team_obj.game_version = match_data['gameVersion']
+        team_obj.match_id = match_data['gameId']
 
         # sometimes we need enemy info too.
-        enemy_dragon_kills = enemy_team_data['dragonKills']
-        enemy_rift_herald_kills = enemy_team_data['riftHeraldKills']
+        team_obj.enemy_dragon_kills = enemy_team_data['dragonKills']
+        team_obj.enemy_rift_herald_kills = enemy_team_data['riftHeraldKills']
 
-        list_of_bans = cls.get_team_bans(team_data['bans'])
-        list_of_enemy_bans = cls.get_team_bans(enemy_team_data['bans'])
+        team_obj.bans = self.get_team_bans(team_data['bans'])
+        team_obj.enemy_bans = self.get_team_bans(enemy_team_data['bans'])
 
-        allies, enemies = cls.get_allies_and_enemies(team_id, match_data['participants'])
-        start_time, duration = cls.get_start_time_and_duration(match_data['gameCreation'],\
-                match_data['gameDuration'])
+        team_obj.allies, team_obj.enemies = self.get_allies_and_enemies(team_id,\
+                match_data['participants'])
 
-        team_data_table_insert = db.insert(cls.team_data_table).values(match_id=match,
-                participants=account_name,
-                win=game_outcome,
-                first_blood=first_blood,
-                first_baron=first_baron,
-                first_tower=first_tower,
-                first_rift_herald=first_rift_herald,
-                ally_rift_herald_kills=ally_rift_herald_kills,
-                first_dragon=first_dragon,
-                ally_dragon_kills=ally_dragon_kills,
-                first_inhib=first_inhib,
-                inhib_kills=inhib_kills,
-                bans=list_of_bans,
-                enemy_bans=list_of_enemy_bans,
-                game_version=game_version,
-                allies=allies,
-                enemies=enemies,
-                start_time=start_time,
-                enemy_rift_herald_kills=enemy_rift_herald_kills,
-                enemy_dragon_kills=enemy_dragon_kills,
-                duration=duration
-                )
+        team_obj.start_time, team_obj.duration = self.get_start_time_and_duration(\
+                match_data['gameCreation'], match_data['gameDuration'])
 
-        cls.connection.execute(team_data_table_insert)
+        self.our_db.session.add(team_obj)
+        self.our_db.session.commit()
 
-    @classmethod
-    def update_team_data_table_row(cls, match: int, account_name: str):
-        """ if the match we're trying to insert into team_data already exists, we update instead
+    def update_team_data_row(self, match: int, account_name: str):
+        """ if the match we're trying to insert into team_data already exists, we update the
+            participants field instead, since our current player was in the game with
+            a previous player.
 
             Args:
                 match: the match_id we're updating
                 account_name: the player we're updating the table for
 
         """
-        select_existing_team_data_row = db.select([cls.team_data_table])\
-                .where(cls.team_data_table.c.match_id==match)
 
-        existing_team_data_row = cls.connection.execute(\
-                select_existing_team_data_row).fetchone()
+        existing_team_data_row = self.our_db.session.query(TeamData).filter_by(match_id=match).one()
 
-        current_participants = existing_team_data_row.participants
-        match_participants_update = cls.team_data_table.update().values(\
-                participants=f"{current_participants}, {account_name}")\
-                .where(cls.team_data_table.c.match_id==match)
+        existing_team_data_row.participants = \
+                f"{existing_team_data_row.participants}, {account_name}"
 
-        cls.connection.execute(match_participants_update)
+        self.our_db.session.commit()
 
     @staticmethod
     def get_participant_index(participant_identities: dict, account_id: str) -> int:
@@ -301,91 +216,68 @@ class LolParser():
 
         return -1
 
-    @classmethod
-    def get_previous_matches(cls) -> list:
-        """ Creates and returns a list of existing matches that we have stored in team_data
-
-            Returns:
-                A list of current match_ids stored in the team_data_table
-        """
-        previous_matches = []
-        select_existing_matches = db.select([cls.team_data_table])
-
-        existing_match_history = cls.connection.execute(select_existing_matches).fetchall()
-
-        for match in existing_match_history:
-            previous_matches.append(match.match_id)
-
-        return previous_matches
-
-    @classmethod
-    def get_summoner_names(cls) -> list:
-        """ Creates and returns a list of summoner names that we have stored in users
+    def get_summoner_names(self) -> list:
+        """ Creates and returns a list of summoner names that we have stored in the league_users
+            table.
 
             Returns:
                 A list of names stored in the league_users table
         """
-        summoner_names = []
-        select_league_users = db.select([cls.league_users_table])
 
-        league_users = cls.connection.execute(select_league_users).fetchall()
+        summoner_names = []
+        league_users = self.our_db.session.query(LeagueUsers).all()
 
         for user in league_users:
             summoner_names.append(user.summoner_name)
 
         return summoner_names
 
-    @classmethod
-    def store_json_data(cls, match: int, json_formatted_string: str):
-        """ Stores the json data into the json_data table
+    def store_json_data(self, match: int, json_formatted_string: str):
+        """ Stores the json data for a single mathc into the json_data table.
 
             Args:
                 match: The match id we're storing data for
                 json_formatted_string: The actual json data to be stored
         """
 
-        try:
-            json_sql_insert = db.insert(cls.json_data_table).values(match_id=match,\
-                    json_data=json_formatted_string)
+        json_row = self.our_db.session.query(JsonData).filter_by(match_id=match).first()
 
-            cls.connection.execute(json_sql_insert)
-        except exc.IntegrityError as e:
-            cls.logger.warning("Could not store JSON. Maybe already stored?")
-            cls.logger.warning(e)
+        if not json_row:
+            self.our_db.session.add(JsonData(match_id=match, json_data=json_formatted_string))
+            self.our_db.session.commit()
+        else:
+            self.logger.log_warning("Json already stored.")
 
-    @classmethod
-    def store_run_info(cls, source: str):
+    def store_run_info(self, source: str):
         """ Creates a new row in the script_runs table
 
             Args:
                 source: The source of the script run (Daily, Manual, ManualWeb)
         """
         time_started = date.now().strftime("%Y-%m-%d %H:%M:%S")
-        runs_sql_insert = db.insert(cls.runs_table).values(source=source,\
-                start_time=time_started,\
-                status="Running")
+        self.our_db.session.add(\
+                ScriptRuns(source=source, start_time=time_started, status="Running"))
 
-        cls.connection.execute(runs_sql_insert)
 
-    @classmethod
-    def update_run_info(cls, status: str, matches: str, message: str):
+    def update_run_info(self, status: str, matches: str, message: str):
         """ Updates the currently running row in script_runs
 
             Args:
                 status:  The status of the run (Failed, Success)
                 matches: A string containing all the matches that were added by this script run
                 message: Any message explaining the status of the run (exception if failed, etc)
+
         """
-        time_ended = date.now().strftime("%Y-%m-%d %H:%M:%S")
-        runs_sql_update = db.update(cls.runs_table).values(status=status,\
-                matches_added=matches,\
-                end_time=time_ended,\
-                message=message).where(cls.runs_table.c.status == "Running")
 
-        cls.connection.execute(runs_sql_update)
+        script_row = self.our_db.session.query(ScriptRuns).filter_by(status="Running").first()
+        script_row.status = status
+        script_row.message = message
+        script_row.end_time = date.now().strftime("%Y-%m-%d %H:%M:%S")
+        script_row.matches_added = matches
 
-    @staticmethod
-    def get_gold_cs_xp_delta(timeline: dict) -> Tuple[float, float, float]:
+        self.our_db.session.commit()
+
+    def get_gold_cs_xp_delta(self, timeline: dict) -> Tuple[float, float, float]:
         """ Gets the gold, cs, and xp deltas from a timeline
 
             Args:
@@ -404,6 +296,7 @@ class LolParser():
         gpm = -1.0
         xppm = -1.0
 
+        # Timeline data doesn't have a defined structure, so sometimes there's no info.
         if 'goldPerMinDeltas' in timeline and 'creepsPerMinDeltas' in timeline\
                 and 'xpPerMinDeltas' in timeline:
 
@@ -424,7 +317,7 @@ class LolParser():
 
                 xppm = float(total_xp / num_of_deltas)
             except ZeroDivisionError:
-                LolParser.logger.warning("NO gold per minute or creeps per minute deltas, GTFO")
+                self.logger.log_warning("NO gold per minute or creeps per minute deltas GTFO")
 
         return gpm, cspm, xppm
 
@@ -455,9 +348,7 @@ class LolParser():
 
         return lane
 
-
-    @classmethod
-    def get_enemy_champ(cls, role: str, participant_index: int, participants: dict) -> int:
+    def get_enemy_champ(self, role: str, participant_index: int, participants: dict) -> int:
         """ Gets our players enemy champion id, if the enemy team has all 5 roles.
 
             Args:
@@ -477,7 +368,7 @@ class LolParser():
             for participant in participants:
                 if participant['teamId'] != our_team_id:
                     timeline = participant['timeline']
-                    enemy_participants_roles.append(cls.get_role(timeline))
+                    enemy_participants_roles.append(self.get_role(timeline))
                     enemy_champions.append(participant['championId'])
 
             if 'NONE' in enemy_participants_roles:
@@ -517,8 +408,7 @@ class LolParser():
 
         return start_time, duration
 
-    @classmethod
-    def get_champ_name(cls, champ_id: int) -> str:
+    def get_champ_name(self, champ_id: int) -> str:
         """ Gets the champ name from the champions table using their champ_id
 
             Args:
@@ -528,17 +418,15 @@ class LolParser():
                 The champions name, or None, if the passed champ_id was -1 (no champ)
 
         """
-        select_champion_row = db.select([cls.champs_table]).where(\
-                cls.champs_table.c.key==champ_id)
 
-        champion_row = cls.connection.execute(select_champion_row).fetchone()
+        champion_row = self.our_db.session.query(Champions).filter_by(key=champ_id).first()
+
         if champion_row.key != -1:
             return champion_row.name
 
         return "None"
 
-    @classmethod
-    def get_allies_and_enemies(cls, team_id: int, participants: list) -> Tuple[str, str]:
+    def get_allies_and_enemies(self, team_id: int, participants: list) -> Tuple[str, str]:
         """ Creates a list of allied and enemy champs played in a particular match.
 
             Args:
@@ -553,17 +441,16 @@ class LolParser():
         enemies = ""
         for participant in participants:
             if participant['teamId'] == team_id:
-                allies += "{}, ".format(cls.get_champ_name(participant['championId']))
+                allies += "{}, ".format(self.get_champ_name(participant['championId']))
             else:
-                enemies += "{}, ".format(cls.get_champ_name(participant['championId']))
+                enemies += "{}, ".format(self.get_champ_name(participant['championId']))
 
         allies = allies[:-2]
         enemies = enemies[:-2]
 
         return allies, enemies
 
-    @classmethod
-    def get_team_bans(cls, bans: list) -> str:
+    def get_team_bans(self, bans: list) -> str:
         """ Builds a list of a teams banned champions using that teams ban list
 
             Args:
@@ -575,13 +462,12 @@ class LolParser():
         list_of_bans = ""
 
         for ban in bans:
-            list_of_bans += "{}, ".format(cls.get_champ_name(ban['championId']))
+            list_of_bans += "{}, ".format(self.get_champ_name(ban['championId']))
 
         list_of_bans = list_of_bans[:-2]
         return list_of_bans
 
-    @classmethod
-    def get_items(cls, participant_stats: dict) -> str:
+    def get_items(self, participant_stats: dict) -> str:
         """ Builds a string containing all of the items purchased by a participant
 
             Args:
@@ -592,11 +478,12 @@ class LolParser():
         """
         champ_items = ""
         items = ['item0', 'item1', 'item2', 'item3', 'item4', 'item5', 'item6']
-        for item in items:
-            select_items_row = db.select([cls.items_table]).where(\
-                    cls.items_table.c.key==participant_stats[item])
 
-            items_row = LolParser.connection.execute(select_items_row).fetchone()
+        for item in items:
+
+            items_row = self.our_db.session.query(Items)\
+                    .filter_by(key=participant_stats[item]).first()
+
             if items_row:
                 champ_items += "{}, ".format(items_row.name)
             else:
@@ -625,8 +512,7 @@ class LolParser():
         champ_perks = champ_perks[:-2]
         return champ_perks
 
-    @classmethod
-    def get_team_data(cls, match_data: dict, account_id: str) -> Tuple[Dict, Dict, int]:
+    def get_team_data(self, match_data: dict, account_id: str) -> Tuple[Dict, Dict, int]:
         """ Returns Team data for both teams, as well as the team_id for both teams
 
             Args:
@@ -639,7 +525,7 @@ class LolParser():
                 team_id: our teams team_id
         """
 
-        participant_index = cls.get_participant_index(match_data['participantIdentities'],\
+        participant_index = self.get_participant_index(match_data['participantIdentities'],\
                 account_id)
 
         participant = match_data['participants'][participant_index]

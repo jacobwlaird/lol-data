@@ -7,10 +7,12 @@ to be able to gather league of legends data. It handles all API calls to the rio
 import json
 import time
 from typing import Dict
-import configparser
 import requests
 from .lolparser import LolParser
+from .lollogger import LolLogger
+from .lolconfig import LolConfig
 
+#pylint: disable=too-many-instance-attributes # This is okay.
 class LolGather():
     """ Contains all the methods and functions needed by our other classes to return data from riot
 
@@ -20,51 +22,49 @@ class LolGather():
             _base_match_url    (str): riot games api base endpoint for match
             _matches_url       (str): riot games api matches endpoint
             _match_url         (str): riot games api individual match endpoint
-            max_game_index     (int): The max index of games we'll search to using riot api
 
-            _config         (obj): ConfigParser object for reading config file
+            config             (obj): Config Class that does all our config stuff.
 
             accounts    (list: str): Holds a list of all accounts we collect data for
-            api_key     (str): Our riot games API key pulled from config file
-
             match_id_list (list: str): Holds a list of games added this script run for logging
     """
-    base_summoner_url = "https://na1.api.riotgames.com/lol/summoner/v4/"
-    account_name_url = "summoners/by-name/"
-    _base_match_url = "https://na1.api.riotgames.com/lol/match/v4/"
-    _matches_url = "matchlists/by-account/"
-    _match_url = "matches/"
 
-    _config = configparser.ConfigParser()
-    _config.read('./resources/python/general.cfg')
-    max_game_index = 200
+    def __init__(self, max_game_index=200):
+        self.base_summoner_url = "https://na1.api.riotgames.com/lol/summoner/v4/"
+        self.account_name_url = "summoners/by-name/"
+        self._base_match_url = "https://na1.api.riotgames.com/lol/match/v4/"
+        self._matches_url = "matchlists/by-account/"
+        self._match_url = "matches/"
+        self.max_game_index = max_game_index
 
-    accounts = LolParser.get_summoner_names()
+        self.lolparser = LolParser()
+        self.config = LolConfig()
+        self.accounts = self.lolparser.get_summoner_names()
+        self.new_match_data: Dict[int, Dict] = {}
+        self.match_id_list = ""
+        self.logger = LolLogger(self.config.log_file_name)
 
-    api_key = _config.get('RIOT', 'api_key')
-    new_match_data: Dict[int, Dict] = {}
-    match_id_list = ""
-
-    @classmethod
-    def get_new_match_ids(cls, account_id: str) -> list:
-        """ Gets an individual account's recently played match ids
+    def get_match_reference_dto(self, account_id: str) -> list:
+        """ Gets an individual account's recently played match ids.
 
             Args:
                 account_id: The account id associated with our account
 
             Returns:
-                A list containing MatchReferenceDto objects from riot games
+                A list containing MatchReferenceDto objects from riot games.
 
         """
         game_index = 0
         player_matches = []
 
-        while game_index < cls.max_game_index:
+        # keeps looping until we get to the max_game_index
+        # a higher max game index makes us check further back in time.
+        while game_index < self.max_game_index:
             try:
-                player_matches_response = requests.get(''.join([cls._base_match_url,\
-                        cls._matches_url, account_id, "?beginIndex=", str(game_index),\
+                player_matches_response = requests.get(''.join([self._base_match_url,\
+                        self._matches_url, account_id, "?beginIndex=", str(game_index),\
                         "&endIndex=", str(game_index+100),\
-                        "&api_key=", cls.api_key]))
+                        "&api_key=", self.config.api_key]))
 
                 player_matches_response.raise_for_status()
                 player_matches_response_dict = json.loads(player_matches_response.text)
@@ -74,22 +74,21 @@ class LolGather():
 
                 player_matches.append(player_matches_response_dict)
                 game_index += 100
-            except requests.exceptions.RequestException as e:
-                LolParser.logger.critical("Get_account_info broke")
-                if e.response.status_code == 403:
-                    LolParser.logger.critical("Api key is probably expired")
-                elif e.response.status_code == 429:
-                    LolParser.logger.warning("Well that's an unfortunate timeout.")
+            except requests.exceptions.RequestException as exc:
+                self.logger.log_critical("Get_account_info broke")
+                if exc.response.status_code == 403:
+                    self.logger.log_critical("Api key is probably expired")
+                elif exc.response.status_code == 429:
+                    self.logger.log_warning("Well that's an unfortunate timeout.")
                     time.sleep(10)
                 else:
-                    LolParser.logger.critical(e)
+                    self.logger.log_critical(exc)
 
             time.sleep(.1)
 
         return player_matches
 
-    @classmethod
-    def get_match_data(cls, match_id: int) -> str:
+    def get_match_data(self, match_id: int) -> str:
         """ Gets an individual matches data
 
             Args:
@@ -101,52 +100,32 @@ class LolGather():
 
         """
         try:
-            LolParser.logger.info(''.join(["getting match data for ", str(match_id)]))
+            self.logger.log_info(''.join(["getting match data for ", str(match_id)]))
 
-            cls.add_id_to_match_list(match_id)
+            # add match_id to match list
+            self.match_id_list = self.match_id_list + " " + str(match_id)
 
             time.sleep(.08) # this should keep us around the 20 per 1 second limit.
 
-            matches_response = requests.get(''.join([cls._base_match_url, cls._match_url,\
-                    str(match_id), "?api_key=", cls.api_key]))
+            matches_response = requests.get(''.join([self._base_match_url, self._match_url,\
+                    str(match_id), "?api_key=", self.config.api_key]))
 
             matches_response.raise_for_status()
             match_json = json.loads(matches_response.text)
 
-            cls.add_match_data_to_new_match_data(match_id, match_json)
+            self.new_match_data[match_id] = match_json
 
             return matches_response.text
 
-        except requests.exceptions.RequestException as e:
-            LolParser.logger.critical(e)
-            LolParser.logger.warning("Get_match_data broke, trying again")
+        except requests.exceptions.RequestException as exc:
+            self.logger.log_critical(exc)
+            self.logger.log_warning("Get_match_data broke, trying again")
             time.sleep(10)
-            cls.get_match_data(match_id)
+            self.get_match_data(match_id)
 
         return ""
 
-    @classmethod
-    def add_id_to_match_list(cls, match_id: int):
-        """ Adds the passed match_id to lolparser.match_id_list for update_run_info
-
-            Args:
-                match_id: the match_id to be added to the string
-        """
-        cls.match_id_list = cls.match_id_list + " " + str(match_id)
-
-
-    @classmethod
-    def add_match_data_to_new_match_data(cls, match_id: int, match_json: Dict):
-        """ Adds the passed json data to lolparser.new_match_data dict with id = match_id
-
-            Args:
-                match_id: the match_id to be added to the dict
-                match_json: the json data to be added to the class attribute
-        """
-        cls.new_match_data[match_id] = match_json
-
-    @classmethod
-    def get_user_id(cls, account_name: str) -> str:
+    def get_account_id(self, account_name: str) -> str:
         """ Hits the riot API and gets our account_id based on account_name
 
             Args:
@@ -156,15 +135,40 @@ class LolGather():
                 The account_id associated with this account from riot
         """
         try:
-            account_response = requests.get(''.join([cls.base_summoner_url,\
-                    cls.account_name_url, account_name, "?api_key=", cls.api_key]))
+            account_response = requests.get(''.join([self.base_summoner_url,\
+                    self.account_name_url, account_name, "?api_key=", self.config.api_key]))
             account_response.raise_for_status()
             account_data = json.loads(account_response.text)
             return account_data['accountId']
-        except requests.exceptions.RequestException as e:
-            if e.response.status_code == 403:
-                LolParser.logger.critical("Api key is probably expired")
+        except requests.exceptions.RequestException as exc:
+            if exc.response.status_code == 403:
+                self.logger.log_critical("Api key is probably expired")
 
-            LolParser.logger.critical("get_user_id broke")
+            self.logger.log_critical("get_user_id broke")
 
         return ""
+
+    @staticmethod
+    def get_unstored_match_ids(prev_matches: list, new_matches: list,\
+            match_types: list) -> list:
+        """ Compares a set of previous match ids with the data we return from riot to determine
+            which matches we will need to get data for.
+
+            Args:
+                prev_matches: the list of matches we already have data for.
+                new_matches: A list containing data objects that include recent game ids.
+                match_types: A list of the match types to include in the comparison.
+
+            Returns:
+                A list of match ids a player was in, but that we don't have stored yet.
+        """
+
+        unstored_match_ids = []
+
+        for page in new_matches:
+            for match in page['matches']:
+                if match['queue'] in match_types:
+                    if match['gameId'] not in prev_matches:
+                        unstored_match_ids.append(match['gameId'])
+
+        return unstored_match_ids
