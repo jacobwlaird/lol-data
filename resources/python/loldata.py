@@ -167,6 +167,8 @@ class LolData():
                 self.parser.update_team_data_row(match, acc.account_name)
 
 if __name__ == "__main__":
+    max_index = 200 # defaults to 200, can be overwritten.
+
     if len(sys.argv) < 2:
         print("Expected an argument denoting run 'source'. (Manual, test, etc)")
         sys.exit()

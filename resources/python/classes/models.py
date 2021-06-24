@@ -120,7 +120,7 @@ class MatchData(Base):
             assists = None, damage_to_champs = None, damage_to_turrets = None,\
             gold_per_minute = None, creeps_per_minute = None, xp_per_minute = None,\
             wards_placed = None, vision_wards_bought = None, wards_killed = None,\
-            items = None, perks = None):
+            items = None, perks = None, win = None):
 
         self.id = id
         self.match_id = match_id

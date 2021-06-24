@@ -29,7 +29,7 @@ class LolDB():
     """
 
     def __init__(self, host, user, pw, name):
-        self.engine = db.create_engine('mysql+pymysql://{}:{}@{}/{}?charset=utf8'.format(user,\
+        self.engine = db.create_engine('mysql+pymysql://{}:{}@{}/{}?charset=utf8mb4'.format(user,\
                 pw, host, name), pool_size=100, max_overflow=100)
 
         # what do I do to associate the models with this?
