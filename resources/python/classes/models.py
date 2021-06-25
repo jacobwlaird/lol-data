@@ -207,6 +207,8 @@ class JsonData(Base):
 
     """
     __tablename__ = "json_data"
+    __table_args__ = {"mysql_default_charset":"utf8"}
+
     match_id = Column(BigInteger, primary_key=True)
     json_data = Column(Text)
 
