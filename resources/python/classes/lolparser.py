@@ -481,6 +481,10 @@ class LolParser():
 
         for item in items:
 
+            # Riot returns 'no item' as 0. So if it's 0, skip getting this item.
+            if participant_stats[item] == 0:
+                continue
+
             items_row = self.our_db.session.query(Items)\
                     .filter_by(key=participant_stats[item]).first()
 
