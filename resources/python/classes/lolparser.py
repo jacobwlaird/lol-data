@@ -233,7 +233,7 @@ class LolParser():
         return summoner_names
 
     def store_json_data(self, match: int, json_formatted_string: str):
-        """ Stores the json data for a single mathc into the json_data table.
+        """ Stores the json data for a single match into the json_data table.
 
             Args:
                 match: The match id we're storing data for
