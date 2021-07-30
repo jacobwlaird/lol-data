@@ -5,12 +5,16 @@ This test suite contains all currently written unit tests for the lolparser.py c
 There is one class for every lolparser function, so new test cases should be added as functions
 belonging to the classes in this file.
 
+
+Don't forget -- Run this from the root folder /lol-data and use the command
+python -m unittest resources.python.test.unit.test_lolparser
 """
 
 import unittest
+import json
 from collections import defaultdict
 from unittest.mock import Mock, MagicMock
-from ...classes.lolparser import LolParser
+from resources.python.classes.lolparser import LolParser
 
 class TestLolParserGetFirstBloodKillAssist(unittest.TestCase):
     """ Contains all the test cases for get_first_blood_kill_assist().
@@ -209,44 +213,126 @@ class TestLolParserGetPreviousPlayerMatchDataIds(unittest.TestCase):
         self.assertEqual(type(result[0]), int)
 
 class TestLolParserInsertMatchDataRow(unittest.TestCase):
-    """ Contains all the test cases for get_previous_player_match_data_ids
+    """ Contains all the test cases for insert_match_data_row
     """
 
-    def create_match_data(self):
-        # so I guess we would just hard set every peice of data taht we need for this function?
-        # moving this somewhere else might be a bit neater, idk.
-
-        something = {}
-        something['gameId'] = 3
-        return something
-
-    def test_with_data(self):
-        """ tests that the data is parsed correctly. """
-
-        # Uhhh. What do to here?
-        # well, we take a huge dict
-        # I can make a mock object and set every param?
-        # maybe I make a function that would return a ton of stock info to populate
-        # the data?
-
+    def test_number_of_function_calls(self):
+        """ tests that the number of functions called is exactly what we expected."""
+        
         mock_dict = MagicMock()
-        mock_dict.configure_mock(gameId=3)
-
         mock_db = MagicMock()
+
+        # mock function calls.
         mock_get_participant_index = MagicMock()
+        mock_get_champ_name = MagicMock()
+        mock_get_first_blood_kill_assist = MagicMock(return_value=[None,None])
+        mock_get_role = MagicMock()
+        mock_get_gold_cs_xp_delta = MagicMock(return_value=[None, None, None])
+        mock_get_enemy_champion = MagicMock()
+        mock_get_perks = MagicMock()
+        mock_get_items = MagicMock()
+
 
         parser = LolParser()
 
         parser.our_db = mock_db
         parser.get_participant_index = mock_get_participant_index
+        parser.get_champ_name = mock_get_champ_name
+        parser.get_first_blood_kill_assist = mock_get_first_blood_kill_assist
+        parser.get_role = mock_get_role
+        parser.get_gold_cs_xp_delta = mock_get_gold_cs_xp_delta
+        parser.get_enemy_champ = mock_get_enemy_champion
+        parser.get_perks = mock_get_perks
+        parser.get_items = mock_get_items
 
         parser.insert_match_data_row(mock_dict, "test", Mock())
 
-        mock_get_participant_index.assert_called_once()
+        # make sure our functions are called the correct number of times.
         mock_db.session.add.assert_called_once()
-        match_data_obj = mock_db.session.add.call_args.args[0]
+        mock_get_participant_index.assert_called_once()
+        self.assertEqual(mock_get_champ_name.call_count, 2)
+        mock_get_first_blood_kill_assist.assert_called_once()
+        mock_get_role.assert_called_once()
+        mock_get_gold_cs_xp_delta.assert_called_once()
+        mock_get_enemy_champion.assert_called_once()
+        mock_get_perks.assert_called_once()
+        mock_get_items.assert_called_once()
 
-        self.assertEqual(match_data_obj.player, "test")
+
+
+class TestLolParserInsertTeamDataRow(unittest.TestCase):
+    """ Contains all the test cases for insert_team_data_row
+    """
+
+    def test_number_of_function_calls(self):
+        """ tests that the number of functions called is exactly what we expected."""
+        mock_dict = MagicMock()
+        mock_db = MagicMock()
+
+        # mock function calls.
+        mock_get_team_data = MagicMock(return_value=[MagicMock(), MagicMock(), MagicMock()])
+        mock_get_team_bans = MagicMock()
+        mock_get_allies_and_enemies = MagicMock(return_value=[None, None])
+        mock_get_start_time_and_duration = MagicMock(return_value=[None, None])
+
+
+        parser = LolParser()
+
+        parser.our_db = mock_db
+        parser.get_team_data = mock_get_team_data
+        parser.get_team_bans = mock_get_team_bans
+        parser.get_allies_and_enemies = mock_get_allies_and_enemies
+        parser.get_start_time_and_duration = mock_get_start_time_and_duration
+
+        parser.insert_team_data_row(mock_dict, "test", Mock())
+
+        mock_db.session.add.assert_called_once()
+        mock_get_team_data.assert_called_once()
+        self.assertEqual(mock_get_team_bans.call_count, 2)
+        mock_get_allies_and_enemies.assert_called_once()
+        mock_get_start_time_and_duration.assert_called_once()
+
+    def test_with_data(self):
+        """ tests that data is parsed correctly. 
+
+            This is a somewhat weird test, as it doesn't test anything returned by other functions
+            function. This is somewhat by design as this is a unit test, and I'll have the same
+            test but more robust as an integration test.
+
+            I may still remove this test at some point after I write the integration test.
+        """
+
+        test_file = open("resources/python/test/test_statics/1", "r")
+        match_dict = json.loads(test_file.read())
+
+        mock_db = MagicMock()
+
+        parser = LolParser()
+
+        parser.our_db = mock_db
+
+        parser.insert_team_data_row(match_dict, "Spaynkee",\
+                "OIesQl3aYp9Mlfi7OgKFXp1i2brmVO0QUMSE0adgol7L2g")
+
+        team_data_obj = mock_db.session.add.call_args.args[0]
+
+        self.assertEqual(team_data_obj.participants, "Spaynkee")
+        self.assertEqual(team_data_obj.win, "Fail")
+        self.assertEqual(team_data_obj.first_blood, 0)
+        self.assertEqual(team_data_obj.first_baron, 0)
+        self.assertEqual(team_data_obj.first_tower, 0)
+        self.assertEqual(team_data_obj.first_rift_herald, 0)
+        self.assertEqual(team_data_obj.ally_rift_herald_kills, 0)
+        self.assertEqual(team_data_obj.first_dragon, 0)
+        self.assertEqual(team_data_obj.ally_dragon_kills, 2)
+        self.assertEqual(team_data_obj.first_inhib, 0)
+        self.assertEqual(team_data_obj.inhib_kills, 0)
+        self.assertEqual(team_data_obj.game_version, '11.13.382.1241')
+        self.assertEqual(team_data_obj.match_id, 3959945080)
+        self.assertEqual(team_data_obj.enemy_dragon_kills, 4)
+        self.assertEqual(team_data_obj.enemy_rift_herald_kills, 2)
+
+        test_file.close()
 
 if __name__ == "__main__":
     unittest.main()
