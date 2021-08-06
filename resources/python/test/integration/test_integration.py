@@ -9,12 +9,10 @@ class TestTeamDataInserted(unittest.TestCase):
     """
 
     def setUp(self):
-        # I guess we need to create a database, and maybe the tables too?
-        # would it be better to just run my other python scripts?
-        # or.. I guess import the models.
         pass
 
     def test_with_data(self):
+        pass
         """ tests that data is parsed correctly. 
             
             This will test that we parse data out correctly, assuming we can get data from
@@ -27,8 +25,6 @@ class TestTeamDataInserted(unittest.TestCase):
         test_file = open("resources/python/test/test_statics/1", "r")
         match_dict = json.loads(test_file.read())
         
-        # ah, now we don't want to mock this much anymore methinks.
-
         mock_db = MagicMock()
         mock_get_participant_index = MagicMock()
         mock_get_participant_index.return_value = 2
@@ -62,12 +58,3 @@ class TestTeamDataInserted(unittest.TestCase):
         self.assertEqual(match_data_obj.wards_killed, 6)
 
         test_file.close()
-    def test_with_zeros(self):
-        """ Tests with 0's as inputs.
-        """
-
-        data = {'firstBloodKill': 0, 'firstBloodAssist': 0}
-        result = LolParser.get_first_blood_kill_assist(data)
-
-        self.assertEqual(result, (0, 0))
-

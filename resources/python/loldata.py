@@ -167,7 +167,7 @@ class LolData():
                 self.parser.update_team_data_row(match, acc.account_name)
 
 if __name__ == "__main__":
-    max_index = 200 # defaults to 200, can be overwritten.
+    MAX_INDEX = 200 # defaults to 200, can be overwritten.
 
     if len(sys.argv) < 2:
         print("Expected an argument denoting run 'source'. (Manual, test, etc)")
@@ -177,10 +177,10 @@ if __name__ == "__main__":
 
     if len(sys.argv) == 3:
         try:
-            max_index = int(sys.argv[2])
+            MAX_INDEX = int(sys.argv[2])
         except ValueError:
             print("Excpeted int for 3rd parameter")
             sys.exit()
 
-    data = LolData(run_source, max_index)
+    data = LolData(run_source, MAX_INDEX)
     data.run()
