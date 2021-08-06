@@ -1,6 +1,3 @@
-typehint: 
-	mypy resources/python/loldata.py
-
 lint:
 	pylint resources/python/loldata.py
 	pylint resources/python/classes
@@ -10,5 +7,5 @@ lint:
 	pylint resources/python/assert_db.py
 	pylint resources/python/update_db_from_api.py
 
-checklist: lint typehint
-.PHONY: typehint lint
+checklist: lint
+.PHONY: lint
