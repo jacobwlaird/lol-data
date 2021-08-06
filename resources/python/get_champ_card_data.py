@@ -37,6 +37,8 @@ def main():
 
     """
 
+
+    # pylint: disable-msg=too-many-locals
     player = sys.argv[1]
     role = sys.argv[2]
     maxgames = sys.argv[3]
@@ -120,6 +122,7 @@ def merge_team_and_player_df(player_df: pd.DataFrame, team_df: pd.DataFrame) -> 
     return combined_df
 
 def get_performance_for_champ_role(player_matches: pd.DataFrame, what_role=None,\
+    # pylint: disable-msg=too-many-locals
     incnone="false") -> pd.DataFrame:
 
     """ Returns data based on a players champ/role stats. If a champ is played in multiple roles,
@@ -138,6 +141,7 @@ def get_performance_for_champ_role(player_matches: pd.DataFrame, what_role=None,
     champs_df = pd.DataFrame(columns=['champion', 'role', 'games', 'win_rate',\
             'kda', 'gpm', 'cspm', 'tower_damage', 'champion_damage', 'wards_placed',\
             'vision_wards_bought', 'wards_killed'])
+
 
     # gets a list of all champions present in this players matches.
     champ_list = list(player_matches['champion_name'].value_counts().index)

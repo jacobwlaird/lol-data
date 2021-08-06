@@ -8,7 +8,7 @@ finishes or fails.
 
 Example:
     $ python3 loldata.py Manual
-    $ python3 loldata.py Manual 3000
+    $ python3 loldata.py Manual 300
 
 """
 import json
